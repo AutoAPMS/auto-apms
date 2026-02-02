@@ -37,8 +37,7 @@ int main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
-  // Initialize rclcpp to allow logger creation
-  rclcpp::init(argc, argv);
+  bool rclcpp_initialized = false;
 
   try {
     const std::filesystem::path manifest_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[1]));
@@ -59,6 +58,10 @@ int main(int argc, char ** argv)
     if (output_file.extension() != ".xml") {
       throw std::runtime_error("Output file '" + output_file.string() + "' has wrong extension. Must be '.xml'.");
     }
+
+    // Initialize rclcpp to allow logger creation
+    rclcpp::init(argc, argv);
+    rclcpp_initialized = true;
 
     const rclcpp::Logger logger = rclcpp::get_logger("create_node_model__" + output_file.stem().string());
 
@@ -133,7 +136,9 @@ int main(int argc, char ** argv)
     doc.writeToFile(output_file.string());
   } catch (const std::exception & e) {
     std::cerr << "ERROR (create_node_model): " << e.what() << "\n";
-    rclcpp::shutdown();
+    if (rclcpp_initialized) {
+      rclcpp::shutdown();
+    }
     return EXIT_FAILURE;
   }
 
