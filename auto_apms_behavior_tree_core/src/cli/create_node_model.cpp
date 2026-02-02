@@ -39,7 +39,7 @@ int main(int argc, char ** argv)
 
   try {
     const std::filesystem::path manifest_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[1]));
-    const std::vector<std::string> library_paths = auto_apms_util::splitString(argv[2], ";");
+    const std::vector<std::string> library_paths = auto_apms_util::splitString(argv[2], ";", true);
     const std::filesystem::path output_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[3]));
 
     if (!std::filesystem::exists(manifest_file)) {
@@ -70,7 +70,13 @@ int main(int argc, char ** argv)
     // Instantiate loaders for all libraries in library_paths (We don't use class_loader::MultiLibraryClassLoader
     // because we want to keep track of the libraries that the nodes come from for debugging purposes)
     std::vector<std::unique_ptr<class_loader::ClassLoader>> class_loaders;
-    for (const auto & path : library_paths) class_loaders.push_back(std::make_unique<class_loader::ClassLoader>(path));
+    for (const auto & path : library_paths) {
+      try {
+        class_loaders.push_back(std::make_unique<class_loader::ClassLoader>(path));
+      } catch (const std::exception & e) {
+        throw std::runtime_error("Failed to load library '" + path + "': " + e.what());
+      }
+    }
 
     // Walk manifest and register all plugins with BT::BehaviorTreeFactory
     for (const auto & [node_name, params] : manifest.map()) {
@@ -79,7 +85,9 @@ int main(int argc, char ** argv)
 
       class_loader::ClassLoader * loader = nullptr;
       for (const auto & l : class_loaders) {
-        if (l->isClassAvailable<core::NodeRegistrationInterface>(required_class_name)) loader = l.get();
+        if (l->isClassAvailable<core::NodeRegistrationInterface>(required_class_name)) {
+          loader = l.get();
+        }
       }
 
       if (!loader) {

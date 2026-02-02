@@ -49,11 +49,51 @@ macro(auto_apms_behavior_tree_register_nodes target)
   # Calling this macro without any node classes is valid, if one only wants to register configurations
   # through the NODE_MANIFEST keyword. So we must check for that here.
   if(NOT "${ARGS_UNPARSED_ARGUMENTS}" STREQUAL "")
+    # Register the specified node classes as plugins
     auto_apms_util_register_plugins(
       ${target}
       "auto_apms_behavior_tree::core::NodeRegistrationInterface"
       ${ARGS_UNPARSED_ARGUMENTS}
       FACTORY_TEMPLATE_CLASS "auto_apms_behavior_tree::core::NodeRegistrationTemplate"
+    )
+
+    # IMPORTANT: Disable LTO (Link-Time Optimization) for behavior tree node plugin libraries.
+    #
+    # Problem: When building on platforms that enable LTO by default (e.g., ROS 2 build farms
+    # where dpkg-buildflags includes -flto=auto), the create_node_model CLI tool
+    # crashes with a segfault during BT::writeTreeNodesModelXML(). This segfault is caught during
+    # build time as we call the create_node_model executable as a custom command for generating
+    # the node models for the standard behavior tree nodes that auto_apms_behavior_tree
+    # comes with. It would also occur at runtime when loading any LTO-compiled plugin libraries
+    # registered using this macro.
+    #
+    # Root cause: LTO optimization occurs within each shared library's compilation unit in isolation.
+    # This plugin library instantiates BehaviorTree.CPP templates (e.g., registerNodeType<T>) that
+    # manipulate internal data structures of the BT::BehaviorTreeFactory. When the LTO-compiled
+    # plugin is loaded at runtime via dlopen() by a CLI tool linked against behaviortree_cpp
+    # (which was compiled as a separate shared library), the optimized code makes assumptions
+    # about memory layout and function signatures that may not hold across the shared library
+    # boundary. Even if both libraries are built with LTO, the optimization cannot cross the
+    # dlopen() boundary, leading to ABI incompatibilities and crashes.
+    #
+    # Solution: Disable LTO for these plugin libraries to ensure the template instantiations
+    # produce standard ABI-compliant code that works correctly when loaded by any tool linked
+    # against behaviortree_cpp, regardless of how that library was compiled.
+    set_target_properties(${target} PROPERTIES
+      INTERPROCEDURAL_OPTIMIZATION FALSE
+      INTERPROCEDURAL_OPTIMIZATION_RELEASE FALSE
+    )
+    target_compile_options(${target} PRIVATE
+      $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:C,GNU>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:C,Clang>:-fno-lto>
+    )
+    target_link_options(${target} PRIVATE
+      $<$<COMPILE_LANG_AND_ID:CXX,GNU>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:C,GNU>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:CXX,Clang>:-fno-lto>
+      $<$<COMPILE_LANG_AND_ID:C,Clang>:-fno-lto>
     )
 
     # Append build information of the specified node plugins (<class_name>@<library_path>).

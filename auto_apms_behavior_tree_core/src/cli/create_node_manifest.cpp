@@ -140,9 +140,14 @@ int main(int argc, char ** argv)
     // Save the manifest (Merged multiple files into s single one)
     output_manifest.toFile(output_file);
 
-    // Print the shared library paths associated with the node manifest to stdout (The trailing ';' is automatically
-    // removed when interpreted as a CMake list)
-    for (const auto & path : library_paths) std::cout << path << ';';
+    // Print the shared library paths associated with the node manifest to stdout.
+    // We use ';' as separator without a trailing ';'
+    bool first = true;
+    for (const auto & path : library_paths) {
+      if (!first) std::cout << ';';
+      std::cout << path;
+      first = false;
+    }
   } catch (const std::exception & e) {
     std::cerr << "ERROR (create_node_manifest): " << e.what() << "\n";
     return EXIT_FAILURE;

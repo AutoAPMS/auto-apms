@@ -173,6 +173,12 @@ Output file: ${_generated_node_manifest_abs_path__build}
 ${_error}"
 )
   endif()
+
+  # Strip any trailing whitespace/newlines from the output
+  string(STRIP "${_node_library_paths}" _node_library_paths)
+  # Also strip any trailing semicolons just to be safe
+  string(REGEX REPLACE ";+$" "" _node_library_paths "${_node_library_paths}")
+
   message(STATUS "Generated behavior tree node manifest ${_generated_node_manifest_abs_path__build} (Relevant libraries: [${_node_library_paths}]).")
 
   # Use the above created manifest for generating a node model
