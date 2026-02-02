@@ -37,6 +37,9 @@ int main(int argc, char ** argv)
     return EXIT_FAILURE;
   }
 
+  // Initialize rclcpp to allow logger creation
+  rclcpp::init(argc, argv);
+
   try {
     const std::filesystem::path manifest_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[1]));
     const std::vector<std::string> library_paths = auto_apms_util::splitString(argv[2], ";");
@@ -130,8 +133,10 @@ int main(int argc, char ** argv)
     doc.writeToFile(output_file.string());
   } catch (const std::exception & e) {
     std::cerr << "ERROR (create_node_model): " << e.what() << "\n";
+    rclcpp::shutdown();
     return EXIT_FAILURE;
   }
 
+  rclcpp::shutdown();
   return EXIT_SUCCESS;
 }
