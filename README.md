@@ -6,7 +6,8 @@
 
 <a href="https://autoapms.github.io/auto-apms-guide/introduction/about">![Docs](https://img.shields.io/website?url=https%3A%2F%2Fautoapms.github.io%2Fauto-apms-guide&label=🎓Documentation)</a>
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/AutoAPMS/auto-apms)
-![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14790307.svg)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18436250.svg)](https://doi.org/10.5281/zenodo.18436250)
+
 
 ![jazzy](https://img.shields.io/ros/v/jazzy/autoapms?&logo=ros&label=ROS%202)
 ![kilted](https://img.shields.io/ros/v/kilted/autoapms?&logo=ros&label=ROS%202)
