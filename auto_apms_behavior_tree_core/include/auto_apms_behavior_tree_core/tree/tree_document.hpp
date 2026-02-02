@@ -1457,3 +1457,7 @@ TreeDocument::TreeElement::removeFirstChild(const std::string & instance_name)
 }
 
 }  // namespace auto_apms_behavior_tree::core
+
+// Include after TreeDocument is fully defined to provide complete type for model::SubTree
+// which is forward declared above but used as return type in insertSubTreeNode methods.
+#include "auto_apms_behavior_tree_core/node/node_model_type.hpp"

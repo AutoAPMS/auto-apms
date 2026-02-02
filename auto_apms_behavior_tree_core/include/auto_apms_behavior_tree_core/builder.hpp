@@ -23,9 +23,6 @@
 #include "auto_apms_behavior_tree_core/tree/tree_resource.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-// needs to be imported for completing the model::SubTree type
-#include "auto_apms_behavior_tree_core/node/node_model_type.hpp"
-
 /**
  * @brief Core API for AutoAPMS's behavior tree implementation.
  */
