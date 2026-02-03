@@ -11,7 +11,6 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(action_msgs REQUIRED)
 find_package(tinyxml2 REQUIRED)
-find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
 find_package(auto_apms_util REQUIRED)
@@ -176,7 +175,6 @@ ament_export_dependencies(
   rclcpp_action
   action_msgs
   tinyxml2
-  eigen3_cmake_module
   Eigen3
   behaviortree_cpp
   auto_apms_util
