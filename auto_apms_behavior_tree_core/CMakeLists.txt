@@ -10,7 +10,7 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(action_msgs REQUIRED)
-find_package(tinyxml2_vendor REQUIRED)
+find_package(tinyxml2 REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(behaviortree_cpp REQUIRED)
@@ -97,7 +97,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   rclcpp::rclcpp
   rclcpp_action::rclcpp_action
   ${action_msgs_TARGETS}
-  ${TinyXML2_TARGETS}
+  tinyxml2::tinyxml2
   Eigen3::Eigen
   behaviortree_cpp::behaviortree_cpp
   auto_apms_util::auto_apms_util
@@ -175,7 +175,7 @@ ament_export_dependencies(
   rclcpp
   rclcpp_action
   action_msgs
-  tinyxml2_vendor # Must be exported instead of TinyXML2 target
+  tinyxml2
   eigen3_cmake_module
   Eigen3
   behaviortree_cpp

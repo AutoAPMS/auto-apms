@@ -17,7 +17,7 @@
   <depend>ament_index_cpp</depend>
   <depend>ament_index_python</depend>
   <depend>action_msgs</depend>
-  <depend>tinyxml2_vendor</depend>
+  <depend>tinyxml2</depend>
   <depend>eigen</depend>
   <depend>behaviortree_cpp</depend>
   <depend>auto_apms_util</depend>

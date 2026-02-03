@@ -19,7 +19,6 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>rclcpp_action</depend>
   <depend>rclcpp_components</depend>
-  <depend>tinyxml2_vendor</depend>
   <depend>generate_parameter_library</depend>
   <depend>auto_apms_util</depend>
   <depend>auto_apms_interfaces</depend>
