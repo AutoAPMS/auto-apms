@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.2 (2026-02-03)
+------------------
 * Remove tinyxml2_vendor in favor of system dependency
 * Contributors: Robin Müller
 
