@@ -2,6 +2,9 @@
 Changelog for package auto_apms_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.4.1 (2026-02-03)
 ------------------
 
