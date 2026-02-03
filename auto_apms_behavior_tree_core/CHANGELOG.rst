@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.4.1 (2026-02-03)
+------------------
 * fix: complete type for SubTree when including tree_document.hpp
 * Fix issue that leads to segfaults when loading behavior tree node plugins from libraries that have been built using link-time optimization (LTO) as in the ROS 2 build farm
 * Contributors: Robin Müller
