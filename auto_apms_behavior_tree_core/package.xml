@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>auto_apms_behavior_tree_core</name>
-  <version>1.4.0</version>
+  <version>1.4.2</version>
   <description>Core functionality and cmake tools for AutoAPMS</description>
   <maintainer email="mue.robin@icloud.com">Robin Müller</maintainer>
   <license>Apache-2.0</license>
@@ -10,14 +10,13 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  <buildtool_depend>eigen3_cmake_module</buildtool_depend>
 
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>ament_index_cpp</depend>
   <depend>ament_index_python</depend>
   <depend>action_msgs</depend>
-  <depend>tinyxml2_vendor</depend>
+  <depend>tinyxml2</depend>
   <depend>eigen</depend>
   <depend>behaviortree_cpp</depend>
   <depend>auto_apms_util</depend>

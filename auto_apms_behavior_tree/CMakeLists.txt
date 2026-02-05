@@ -14,7 +14,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(tinyxml2_vendor REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(auto_apms_util REQUIRED)
 find_package(auto_apms_interfaces REQUIRED)
@@ -119,7 +118,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
   rclcpp::rclcpp
   rclcpp_action::rclcpp_action
-  ${TinyXML2_TARGETS}
   ${std_srvs_TARGETS}
   auto_apms_util::auto_apms_util
   ${auto_apms_interfaces_TARGETS}
@@ -303,7 +301,6 @@ ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(
   rclcpp
   rclcpp_action
-  tinyxml2_vendor
   std_srvs
   auto_apms_util
   auto_apms_interfaces
