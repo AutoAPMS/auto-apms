@@ -130,6 +130,16 @@ target_link_libraries(create_node_model_header ${PROJECT_NAME})
 add_executable(create_node_reference_markdown "src/cli/create_node_reference_markdown.cpp")
 target_link_libraries(create_node_reference_markdown ${PROJECT_NAME})
 
+### Quick test utilities to be used manually (not installed or exported) for debugging and development purposes
+
+# Quick test utility to print node manifest identities
+add_executable(test_print_node_manifest_identities "test/test_print_node_manifest_identities.cpp")
+target_link_libraries(test_print_node_manifest_identities ${PROJECT_NAME})
+
+# Quick test utility to print behavior resource identities
+add_executable(test_print_behavior_identities "test/test_print_behavior_identities.cpp")
+target_link_libraries(test_print_behavior_identities ${PROJECT_NAME})
+
 #
 # ------------ Testing --------------
 #
