@@ -22,23 +22,24 @@
 
 /// @cond INTERNAL
 
-#define AUTO_APMS_BEHAVIOR_TREE_CORE_DEFINE_NON_LEAF_THISREF_METHODS(ClassType)                                    \
-  ClassType & removeFirstChild(const std::string & registration_name = "", const std::string & instance_name = "") \
-  {                                                                                                                \
-    NodeElement::removeFirstChild(registration_name, instance_name);                                               \
-    return *this;                                                                                                  \
-  }                                                                                                                \
-  template <class T>                                                                                               \
-  typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, ClassType &> removeFirstChild(                    \
-    const std::string & instance_name = "")                                                                        \
-  {                                                                                                                \
-    NodeElement::removeFirstChild<T>(instance_name);                                                               \
-    return *this;                                                                                                  \
-  }                                                                                                                \
-  ClassType & removeChildren()                                                                                     \
-  {                                                                                                                \
-    NodeElement::removeChildren();                                                                                 \
-    return *this;                                                                                                  \
+#define AUTO_APMS_BEHAVIOR_TREE_CORE_DEFINE_NON_LEAF_THISREF_METHODS(ClassType)                                   \
+  ClassType & removeFirstChild(                                                                                   \
+    const std::string & registration_name = "", const std::string & instance_name = "", bool deep_search = false) \
+  {                                                                                                               \
+    NodeElement::removeFirstChild(registration_name, instance_name, deep_search);                                 \
+    return *this;                                                                                                 \
+  }                                                                                                               \
+  template <class T>                                                                                              \
+  typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, ClassType &> removeFirstChild(                   \
+    const std::string & instance_name = "", bool deep_search = false)                                             \
+  {                                                                                                               \
+    NodeElement::removeFirstChild<T>(instance_name, deep_search);                                                 \
+    return *this;                                                                                                 \
+  }                                                                                                               \
+  ClassType & removeChildren()                                                                                    \
+  {                                                                                                               \
+    NodeElement::removeChildren();                                                                                \
+    return *this;                                                                                                 \
   }
 
 #define AUTO_APMS_BEHAVIOR_TREE_CORE_DEFINE_LEAF_THISREF_METHODS(ClassType)                                      \

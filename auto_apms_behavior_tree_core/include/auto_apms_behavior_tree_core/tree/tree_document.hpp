@@ -17,6 +17,7 @@
 #include <tinyxml2.h>
 
 #include <functional>
+#include <iterator>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -549,8 +550,7 @@ public:
 
     // clang-format off
     /**
-     * @brief Recursively visit this node's children in execution order and get the first node with a particular
-     * registration and instance name.
+     * @brief Get the first node with a particular registration and instance name.
      *
      * This method determines which node element to return by evaluating its arguments as follows:
      *
@@ -559,17 +559,23 @@ public:
      * | `registration_name` **empty**     | Simply return the first child node without inspecting it further                              | Return the first child node that has the given instance name regardless its registration name |
      * | `registration_name` **non-empty** | Return the first child node that has the given registration name regardless its instance name | Return the first child node that has both the given registration *AND* instance name          |
      *
+     * Additionally, the user may specify whether to recursively visit all descendants of this node in execution order by setting @p deep_search to `true`. By default, only direct children of this node are considered for the search.
+     *
      * @param registration_name Registration name of the node that is searched for.
      * @param instance_name Name of the specific node instance that is searched for.
+     * @param deep_search If `true`, recursively visit all descendants in execution order. If `false` (default), only consider
+     * direct children of this node.
      * @return First child node element that meets the search criterion defined according to the above.
      * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if no node matching the search criterion could be
      * found.
      */
-    NodeElement getFirstNode(const std::string & registration_name = "", const std::string & instance_name = "") const;
+    NodeElement getFirstNode(
+      const std::string & registration_name = "", const std::string & instance_name = "",
+      bool deep_search = false) const;
 
+    // clang-format off
     /**
-     * @brief Recursively visit this node's children in execution order and get the first node with a particular
-     * instance name.
+     * @brief Get the first node with a particular instance name.
      *
      * The kind of node to search for is specified using a node model type passed as the template argument @p T.
      * Additionally, the user may provide an instance name. According to @p instance_name, the node element to be
@@ -579,19 +585,23 @@ public:
      * | ---                                                                                                           |                                                                                                            |
      * | Return the first child node that has the registration name provided by the model regardless its instance name | Return the first child node that has both the registration name of the model *AND* the given instance name |
      *
+     * Additionally, the user may specify whether to recursively visit all descendants of this node in execution order by setting @p deep_search to `true`. By default, only direct children of this node are considered for the search.
+     *
      * @tparam T Node model type.
      * @param instance_name Name of the specific node instance that is searched for.
+     * @param deep_search If `true`, recursively visit all descendants in execution order. If `false`, only consider
+     * direct children of this node.
      * @return First child node element that meets the search criterion defined according to the above.
      * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if no node matching the search criterion could be
      * found.
      */
     template <class T>
     typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, T> getFirstNode(
-      const std::string & instance_name = "") const;
+      const std::string & instance_name = "", bool deep_search = false) const;
 
+    // clang-format off
     /**
-     * @brief Recursively visit this node's children in execution order and remove the first node with a particular
-     * registration and instance name.
+     * @brief Remove the first node with a particular registration and instance name.
      *
      * This method determines which node element to remove by evaluating its arguments as follows:
      *
@@ -600,17 +610,23 @@ public:
      * | `registration_name` **empty**     | Simply remove the first child node without inspecting it further                              | Remove the first child node that has the given instance name regardless its registration name |
      * | `registration_name` **non-empty** | Remove the first child node that has the given registration name regardless its instance name | Remove the first child node that has both the given registration *AND* instance name          |
      *
+     * Additionally, the user may specify whether to recursively visit all descendants of this node in execution order by setting @p deep_search to `true`. By default, only direct children of this node are considered for the removal.
+     *
      * @param registration_name Registration name of the node to be removed.
      * @param instance_name Name of the specific node instance to be removed.
+     * @param deep_search If `true`, recursively visit all descendants in execution order. If `false` (default), only consider
+     * direct children of this node.
      * @return Modified node element.
      * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if no node matching the search criterion could be
      * found.
      */
-    NodeElement & removeFirstChild(const std::string & registration_name = "", const std::string & instance_name = "");
+    NodeElement & removeFirstChild(
+      const std::string & registration_name = "", const std::string & instance_name = "",
+      bool deep_search = false);
 
+    // clang-format off
     /**
-     * @brief Recursively visit this node's children in execution order and remove the first node with a particular
-     * instance name.
+     * @brief Remove the first node with a particular instance name.
      *
      * The kind of node to remove is specified using a node model type passed as the template argument @p T.
      * Additionally, the user may provide an instance name. According to @p instance_name, the child node to be removed
@@ -620,15 +636,19 @@ public:
      * | ---                                                                                                           |                                                                                                            |
      * | Remove the first child node that has the registration name provided by the model regardless its instance name | Remove the first child node that has both the registration name of the model *AND* the given instance name |
      *
+     * Additionally, the user may specify whether to recursively visit all descendants of this node in execution order by setting @p deep_search to `true`. By default, only direct children of this node are considered for the removal.
+     *
      * @tparam T Node model type.
      * @param instance_name Name of the specific node instance to be removed.
+     * @param deep_search If `true`, recursively visit all descendants in execution order. If `false` (default), only consider
+     * direct children of this node.
      * @return Modified node element.
      * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if no node matching the search criterion could be
      * found.
      */
     template <class T>
     typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, NodeElement &> removeFirstChild(
-      const std::string & instance_name = "");
+      const std::string & instance_name = "", bool deep_search = false);
     // clang-format on
 
     /**
@@ -760,6 +780,57 @@ public:
      */
     std::vector<NodeElement> deepApply(DeepApplyCallback apply_callback);
 
+    /**
+     * @brief Forward iterator for traversing the first-level children of a node.
+     *
+     * This iterator yields NodeElement handles for each direct child element. It does **not** recurse into children of
+     * children. For recursive traversal, use NodeElement::deepApply or NodeElement::deepApplyConst instead.
+     */
+    class ChildIterator
+    {
+      friend class NodeElement;
+
+    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = NodeElement;
+      using difference_type = std::ptrdiff_t;
+      using pointer = value_type *;
+      using reference = value_type;
+
+      /// Create a past-the-end iterator.
+      ChildIterator();
+
+      /// Dereference the iterator to obtain a NodeElement handle for the current child.
+      value_type operator*() const;
+
+      /// Pre-increment: advance to the next sibling element.
+      ChildIterator & operator++();
+
+      /// Post-increment: advance to the next sibling element, returning the previous state.
+      ChildIterator operator++(int);
+
+      bool operator==(const ChildIterator & other) const;
+      bool operator!=(const ChildIterator & other) const;
+
+    private:
+      ChildIterator(TreeDocument * doc_ptr, tinyxml2::XMLElement * current);
+
+      TreeDocument * doc_ptr_;
+      tinyxml2::XMLElement * current_;
+    };
+
+    /**
+     * @brief Get an iterator to the first child of this node.
+     * @return Iterator pointing to the first child, or a past-the-end iterator if there are no children.
+     */
+    ChildIterator begin() const;
+
+    /**
+     * @brief Get a past-the-end iterator for the children of this node.
+     * @return Past-the-end iterator.
+     */
+    ChildIterator end() const;
+
   private:
     NodeElement insertBeforeImpl(const NodeElement * before_this, XMLElement * add_this);
 
@@ -869,17 +940,18 @@ public:
 
     /**
      * This function is an exact reimplementation of NodeElement::removeFirstChild(const std::string &, const
-     * std::string &) only that it returns a tree element instead of a node element to support method chaining.
+     * std::string &, bool) only that it returns a tree element instead of a node element to support method chaining.
      */
-    TreeElement & removeFirstChild(const std::string & registration_name = "", const std::string & instance_name = "");
+    TreeElement & removeFirstChild(
+      const std::string & registration_name = "", const std::string & instance_name = "", bool deep_search = false);
 
     /**
-     * This function is an exact reimplementation of NodeElement::removeFirstChild(const std::string &) only that it
-     * returns a tree element instead of a node element to support method chaining.
+     * This function is an exact reimplementation of NodeElement::removeFirstChild<T>(const std::string &, bool) only
+     * that it returns a tree element instead of a node element to support method chaining.
      */
     template <class T>
     typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, TreeElement &> removeFirstChild(
-      const std::string & instance_name = "");
+      const std::string & instance_name = "", bool deep_search = false);
 
     /**
      * This function is an exact reimplementation of NodeElement::removeChildren only that it
@@ -1435,24 +1507,24 @@ TreeDocument::NodeElement::insertNode(const TreeElement & tree, const NodeElemen
 
 template <class T>
 inline typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, T> core::TreeDocument::NodeElement::getFirstNode(
-  const std::string & instance_name) const
+  const std::string & instance_name, bool deep_search) const
 {
-  const NodeElement ele = getFirstNode(T::name(), instance_name);
+  const NodeElement ele = getFirstNode(T::name(), instance_name, deep_search);
   return T(ele.doc_ptr_, ele.ele_ptr_);
 }
 
 template <class T>
 inline typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, TreeDocument::NodeElement &>
-core::TreeDocument::NodeElement::removeFirstChild(const std::string & instance_name)
+core::TreeDocument::NodeElement::removeFirstChild(const std::string & instance_name, bool deep_search)
 {
-  return removeFirstChild(T::name(), instance_name);
+  return removeFirstChild(T::name(), instance_name, deep_search);
 }
 
 template <class T>
 inline typename std::enable_if_t<std::is_base_of_v<NodeModelType, T>, TreeDocument::TreeElement &>
-TreeDocument::TreeElement::removeFirstChild(const std::string & instance_name)
+TreeDocument::TreeElement::removeFirstChild(const std::string & instance_name, bool deep_search)
 {
-  NodeElement::removeFirstChild<T>(instance_name);
+  NodeElement::removeFirstChild<T>(instance_name, deep_search);
   return *this;
 }
 
