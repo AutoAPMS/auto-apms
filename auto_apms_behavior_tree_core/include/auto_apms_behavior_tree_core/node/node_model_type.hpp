@@ -193,7 +193,13 @@ public:
    * @param remapping Mapping of blackboard entry names in the format {subtree_entry_name: original_tree_entry_name}
    * @return Modified subtree model.
    */
-  SubTree & setBlackboardRemapping(const PortValues & remapping);
+  SubTree & setBlackboardRemapping(const std::map<std::string, std::string> & remapping);
+
+  /**
+   * @brief Get the currently configured blackboard remapping.
+   * @return Mapping of blackboard entry names in the format {subtree_entry_name: original_tree_entry_name}
+   */
+  std::map<std::string, std::string> getBlackboardRemapping() const;
 
   /**
    * @brief Set automatic blackboard remapping.
