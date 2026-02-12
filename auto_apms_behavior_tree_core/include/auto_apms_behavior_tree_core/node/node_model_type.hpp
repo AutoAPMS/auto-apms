@@ -121,6 +121,12 @@ public:
   LeafNodeModelType insertTreeFromResource() = delete;
   LeafNodeModelType & removeFirstChild() = delete;
   LeafNodeModelType & removeChildren() = delete;
+  bool hasChildren() const = delete;
+  NodeElement getFirstNode() const = delete;
+  ChildIterator begin() const = delete;
+  ChildIterator end() const = delete;
+  std::vector<NodeElement> deepApplyConst() = delete;
+  std::vector<NodeElement> deepApply() = delete;
 };
 
 }  // namespace core
