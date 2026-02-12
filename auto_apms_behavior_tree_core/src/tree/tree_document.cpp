@@ -336,17 +336,23 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromResource(
 bool TreeDocument::NodeElement::hasChildren() const { return ele_ptr_->FirstChild() == nullptr ? false : true; }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::getFirstNode(
-  const std::string & registration_name, const std::string & instance_name) const
+  const std::string & registration_name, const std::string & instance_name, bool deep_search) const
 {
   if (registration_name.empty() && instance_name.empty()) return NodeElement(doc_ptr_, ele_ptr_->FirstChildElement());
 
-  // If name is given, recursively search for the first node with this name
   ConstDeepApplyCallback apply = [&registration_name, &instance_name](const NodeElement & ele) {
     if (registration_name.empty()) return ele.getName() == instance_name;
     if (instance_name.empty()) return ele.getRegistrationName() == registration_name;
     return ele.getRegistrationName() == registration_name && ele.getName() == instance_name;
   };
-  if (const std::vector<NodeElement> found = deepApplyConst(apply); !found.empty()) return found[0];
+
+  if (deep_search) {
+    if (const std::vector<NodeElement> found = deepApplyConst(apply); !found.empty()) return found[0];
+  } else {
+    for (auto child : *this) {
+      if (apply(child)) return child;
+    }
+  }
 
   // Cannot find node in children of this
   throw exceptions::TreeDocumentError(
@@ -355,9 +361,10 @@ TreeDocument::NodeElement TreeDocument::NodeElement::getFirstNode(
 }
 
 TreeDocument::NodeElement & TreeDocument::NodeElement::removeFirstChild(
-  const std::string & registration_name, const std::string & instance_name)
+  const std::string & registration_name, const std::string & instance_name, bool deep_search)
 {
-  ele_ptr_->DeleteChild(getFirstNode(registration_name, instance_name).ele_ptr_);
+  XMLElement * found = getFirstNode(registration_name, instance_name, deep_search).ele_ptr_;
+  found->Parent()->DeleteChild(found);
   return *this;
 }
 
@@ -449,6 +456,8 @@ std::string TreeDocument::NodeElement::getFullyQualifiedName() const
 
 const TreeDocument & TreeDocument::NodeElement::getParentDocument() const { return *doc_ptr_; }
 
+TreeDocument::XMLElement * TreeDocument::NodeElement::getXMLElement() { return ele_ptr_; }
+
 const std::vector<TreeDocument::NodeElement> TreeDocument::NodeElement::deepApplyConst(
   ConstDeepApplyCallback apply_callback) const
 {
@@ -529,6 +538,48 @@ void TreeDocument::NodeElement::deepApplyImpl(
   }
 }
 
+TreeDocument::NodeElement::ChildIterator::ChildIterator() : doc_ptr_(nullptr), current_(nullptr) {}
+
+TreeDocument::NodeElement::ChildIterator::ChildIterator(TreeDocument * doc_ptr, tinyxml2::XMLElement * current)
+: doc_ptr_(doc_ptr), current_(current)
+{
+}
+
+TreeDocument::NodeElement::ChildIterator::value_type TreeDocument::NodeElement::ChildIterator::operator*() const
+{
+  return NodeElement(doc_ptr_, current_);
+}
+
+TreeDocument::NodeElement::ChildIterator & TreeDocument::NodeElement::ChildIterator::operator++()
+{
+  if (current_) current_ = current_->NextSiblingElement();
+  return *this;
+}
+
+TreeDocument::NodeElement::ChildIterator TreeDocument::NodeElement::ChildIterator::operator++(int)
+{
+  ChildIterator tmp = *this;
+  ++(*this);
+  return tmp;
+}
+
+bool TreeDocument::NodeElement::ChildIterator::operator==(const ChildIterator & other) const
+{
+  return current_ == other.current_;
+}
+
+bool TreeDocument::NodeElement::ChildIterator::operator!=(const ChildIterator & other) const
+{
+  return current_ != other.current_;
+}
+
+TreeDocument::NodeElement::ChildIterator TreeDocument::NodeElement::begin() const
+{
+  return ChildIterator(doc_ptr_, ele_ptr_->FirstChildElement());
+}
+
+TreeDocument::NodeElement::ChildIterator TreeDocument::NodeElement::end() const { return ChildIterator(); }
+
 TreeDocument::TreeElement::TreeElement(TreeDocument * doc_ptr, XMLElement * ele_ptr) : NodeElement(doc_ptr, ele_ptr)
 {
   if (!ele_ptr->Attribute(TREE_NAME_ATTRIBUTE_NAME)) {
@@ -603,9 +654,9 @@ std::string TreeDocument::TreeElement::writeToString() const
 }
 
 TreeDocument::TreeElement & TreeDocument::TreeElement::removeFirstChild(
-  const std::string & registration_name, const std::string & instance_name)
+  const std::string & registration_name, const std::string & instance_name, bool deep_search)
 {
-  NodeElement::removeFirstChild(registration_name, instance_name);
+  NodeElement::removeFirstChild(registration_name, instance_name, deep_search);
   return *this;
 }
 

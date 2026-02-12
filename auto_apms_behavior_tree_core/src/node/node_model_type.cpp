@@ -36,7 +36,7 @@ std::string SubTree::name() { return core::TreeDocument::SUBTREE_ELEMENT_NAME; }
 
 std::string SubTree::getRegistrationName() const { return name(); }
 
-SubTree & SubTree::setBlackboardRemapping(const PortValues & remapping)
+SubTree & SubTree::setBlackboardRemapping(const std::map<std::string, std::string> & remapping)
 {
   for (const auto & [key, val] : remapping) {
     if (!BT::TreeNode::isBlackboardPointer(val)) {
@@ -48,6 +48,17 @@ SubTree & SubTree::setBlackboardRemapping(const PortValues & remapping)
     ele_ptr_->SetAttribute(key.c_str(), val.c_str());
   }
   return *this;
+}
+
+std::map<std::string, std::string> SubTree::getBlackboardRemapping() const
+{
+  std::map<std::string, std::string> remapping;
+  for (const tinyxml2::XMLAttribute * attr = ele_ptr_->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+    if (BT::TreeNode::isBlackboardPointer(attr->Value())) {
+      remapping[attr->Name()] = attr->Value();
+    }
+  }
+  return remapping;
 }
 
 SubTree & SubTree::set_auto_remap(bool val) { return setPorts({{"_autoremap", BT::toStr(val)}}); }

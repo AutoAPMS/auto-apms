@@ -318,6 +318,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/node_registration.cpp"
+    "test/unit/tree_document_model_templates.cpp"
   )
   target_link_libraries(${PROJECT_NAME}_unit_tests ${PROJECT_NAME})
 endif()
