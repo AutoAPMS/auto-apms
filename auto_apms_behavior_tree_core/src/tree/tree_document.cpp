@@ -456,6 +456,8 @@ std::string TreeDocument::NodeElement::getFullyQualifiedName() const
 
 const TreeDocument & TreeDocument::NodeElement::getParentDocument() const { return *doc_ptr_; }
 
+TreeDocument::XMLElement * TreeDocument::NodeElement::getXMLElement() { return ele_ptr_; }
+
 const std::vector<TreeDocument::NodeElement> TreeDocument::NodeElement::deepApplyConst(
   ConstDeepApplyCallback apply_callback) const
 {

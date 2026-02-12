@@ -745,6 +745,15 @@ public:
     const TreeDocument & getParentDocument() const;
 
     /**
+     * @brief Get a pointer to the underlying `tinyxml2::XMLElement` of this node.
+     *
+     * @warning This method allows direct access to the underlying XML element for advanced use cases. It should be
+     * used with caution, as modifying the XML structure directly can lead to inconsistencies if not done carefully.
+     * @return Pointer to the underlying `tinyxml2::XMLElement` of this node.
+     */
+    XMLElement * getXMLElement();
+
+    /**
      * @brief Recursively apply a callback to this node's children.
      *
      * @p apply_callback is applied recursively to each of the child nodes starting from the first (left) child and must
