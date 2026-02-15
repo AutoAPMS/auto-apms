@@ -78,8 +78,10 @@ public:
   BT::NodeStatus onResponseReceived(const Response::SharedPtr & response) override final
   {
     if (response->values.empty()) {
-      throw std::logic_error(
-        context_.getFullyQualifiedTreeNodeName(this) + " - Response vector doesn't contain any values.");
+      RCLCPP_DEBUG(
+        logger_, "%s - Parameter '%s' not found on the targeted node.",
+        context_.getFullyQualifiedTreeNodeName(this).c_str(), requested_parameter_name_.c_str());
+      return BT::NodeStatus::FAILURE;
     }
     rclcpp::ParameterValue val(response->values[0]);
     if (val.get_type() == rclcpp::PARAMETER_NOT_SET) {
