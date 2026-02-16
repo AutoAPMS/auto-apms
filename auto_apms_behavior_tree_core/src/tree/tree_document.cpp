@@ -1416,10 +1416,17 @@ void TreeDocument::writeToFile(const std::string & path) const
 
 TreeDocument & TreeDocument::reset()
 {
+  // Reset XML document
   Clear();
   tinyxml2::XMLElement * root_ele = NewElement(TreeDocument::ROOT_ELEMENT_NAME);
   root_ele->SetAttribute(TreeDocument::BTCPP_FORMAT_ATTRIBUTE_NAME, format_version_.c_str());
   InsertFirstChild(root_ele);
+
+  // Reset node registrations
+  for (const auto & node_name : getRegisteredNodeNames(false)) {
+    factory_.unregisterBuilder(node_name);
+  }
+  registered_nodes_manifest_ = NodeManifest();
   return *this;
 }
 
