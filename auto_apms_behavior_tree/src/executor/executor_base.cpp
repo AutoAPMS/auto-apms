@@ -53,8 +53,10 @@ std::shared_future<TreeExecutorBase::ExecutionResult> TreeExecutorBase::startExe
       "Cannot start execution with tree '" + getTreeName() + "' currently executing.");
   }
 
-  TreeBlackboardSharedPtr main_tree_bb_ptr = TreeBlackboard::create(global_blackboard_ptr_);
   try {
+    // Lives inside BT::Tree once it is created
+    TreeBlackboardSharedPtr main_tree_bb_ptr = TreeBlackboard::create(global_blackboard_ptr_);
+    // Create the tree from the provided callback and store it in the executor
     tree_ptr_.reset(new Tree(make_tree(main_tree_bb_ptr)));
   } catch (const std::exception & e) {
     throw exceptions::TreeBuildError(

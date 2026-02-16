@@ -197,7 +197,7 @@ private:
   /* Virtual methods */
 
   /**
-   * @brief Callback invoked every time before any behavior trees are built.
+   * @brief Callback invoked before building the behavior tree using the loaded build handler.
    *
    * This is invoked first thing inside the tree constructor callback returned by TreeExecutorNode::makeTreeConstructor
    * just after the tree builder object has been instantiated. Therefore, the builder object is "empty" when passed to
@@ -207,18 +207,38 @@ private:
    *
    * - The user wants to define an executor-specific initial configuration of the builder object, before it is
    * passed to the currently configured build handler.
+   *
    * - The user wants to bypass the build handler concept and directly create the behavior tree using this method.
    * @param builder Tree builder to be configured. This is used for creating the behavior tree later.
    * @param build_request Behavior build request for creating the behavior.
    * @param entry_point Single point of entry for behavior execution.
    * @param node_manifest Behavior tree node manifest to be loaded for behavior execution.
+   * @param bb Local blackboard of the tree that is being created. This blackboard is derived from the global blackboard
+   * and is passed when instantiating the tree. Changes to this blackboard are not reflected on the global blackboard.
    */
-  virtual void preconfigureBuilder(
+  virtual void preBuild(
     TreeBuilder & builder, const std::string & build_request, const std::string & entry_point,
-    const core::NodeManifest & node_manifest);
+    const core::NodeManifest & node_manifest, TreeBlackboard & bb);
+
+  /**
+   * @brief Callback invoked after the behavior tree has been instantiated.
+   *
+   * This is invoked last thing inside the tree constructor callback returned by
+   * TreeExecutorNode::makeTreeConstructor just after the tree has been instantiated but before the constructor callback
+   * returns. Therefore, the tree is not yet being executed when this method is invoked.
+   *
+   * @param tree Behavior tree that has been created and is about to be executed.
+   */
+  virtual void postBuild(Tree & tree);
 
 protected:
   /* Utility methods */
+
+  /**
+   * @brief Get a copy of the current executor parameters.
+   * @return Current executor parameters.
+   */
+  ExecutorParameters getExecutorParameters() const;
 
   /**
    * @brief Assemble all parameters of this node that have a specific prefix.

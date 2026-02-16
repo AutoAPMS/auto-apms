@@ -277,11 +277,13 @@ TreeExecutorNode::TreeExecutorNode(rclcpp::NodeOptions options)
 {
 }
 
-void TreeExecutorNode::preconfigureBuilder(
+void TreeExecutorNode::preBuild(
   core::TreeBuilder & /*builder*/, const std::string & /*build_request*/, const std::string & /*entry_point*/,
-  const core::NodeManifest & /*node_manifest*/)
+  const core::NodeManifest & /*node_manifest*/, TreeBlackboard & /*bb*/)
 {
 }
+
+void TreeExecutorNode::postBuild(Tree & /*tree*/) {}
 
 std::shared_future<TreeExecutorNode::ExecutionResult> TreeExecutorNode::startExecution(
   const std::string & build_request, const std::string & entry_point, const core::NodeManifest & node_manifest)
@@ -289,6 +291,11 @@ std::shared_future<TreeExecutorNode::ExecutionResult> TreeExecutorNode::startExe
   const ExecutorParameters params = executor_param_listener_.get_params();
   return startExecution(
     makeTreeConstructor(build_request, entry_point, node_manifest), params.tick_rate, params.groot2_port);
+}
+
+TreeExecutorNode::ExecutorParameters TreeExecutorNode::getExecutorParameters() const
+{
+  return executor_param_listener_.get_params();
 }
 
 std::map<std::string, rclcpp::ParameterValue> TreeExecutorNode::getParameterValuesWithPrefix(const std::string & prefix)
@@ -431,8 +438,8 @@ TreeConstructor TreeExecutorNode::makeTreeConstructor(
     builder_ptr_.reset(new TreeBuilder(
       node_ptr_, getTreeNodeWaitablesCallbackGroupPtr(), getTreeNodeWaitablesExecutorPtr(), tree_node_loader_ptr_));
 
-    // Allow executor to configure the builder independently from the build handler prior to building the tree
-    preconfigureBuilder(*builder_ptr_, build_request, entry_point, node_manifest);
+    // Allow executor to make modifications prior to building the tree
+    preBuild(*builder_ptr_, build_request, entry_point, node_manifest, *bb_ptr);
 
     // Make scripting enums available to tree instance
     for (const auto & [enum_key, val] : scripting_enums_) builder_ptr_->setScriptingEnum(enum_key, val);
@@ -444,8 +451,12 @@ TreeConstructor TreeExecutorNode::makeTreeConstructor(
     }
 
     // Finally, instantiate the tree
-    return instantiate_name.empty() ? builder_ptr_->instantiate(bb_ptr)
-                                    : builder_ptr_->instantiate(instantiate_name, bb_ptr);
+    Tree tree = instantiate_name.empty() ? builder_ptr_->instantiate(bb_ptr)
+                                         : builder_ptr_->instantiate(instantiate_name, bb_ptr);
+
+    // Allow executor to make modifications after building the tree, but before execution starts
+    postBuild(tree);
+    return tree;
   };
 }
 
