@@ -22,7 +22,11 @@
 # behavior trees using the TreeDocument API.
 #
 # :param target: Shared library target implementing the behavior tree
-#   nodes registered under ARGN.
+#   nodes registered under ARGN. If ARGN is empty, this macro only generates metadata for the
+#   manifests given under NODE_MANIFEST without registering any plugins. In this case, the target
+#   argument is interpreted as the node manifest alias for which the metadata is generated,
+#   and the generated metadata is exported under that alias. The alias can also be set by specifying
+#   the NODE_MANIFEST_ALIAS argument.
 # :type target: string
 # :param ARGN: The unique names of node classes being registered with this
 #   macro call and exported by the shared library target.
@@ -30,6 +34,9 @@
 # :param NODE_MANIFEST: One or more relative paths or existing resource identities of node manifests.
 #   Multiple file paths are concatenated to a single one.
 # :type NODE_MANIFEST: list of strings
+# :param NODE_MANIFEST_ALIAS: An optional alias for the node manifest resulting from NODE_MANIFEST.
+#    By default, target will be used as alias, but this can be overridden by specifying this argument.
+# :type NODE_MANIFEST_ALIAS: string
 # :param NODE_MODEL_HEADER_TARGET: Name of a shared library target. If specified,
 #   generate a C++ header that defines model classes for all behavior tree
 #   nodes specified inside the node manifest files provided under NODE_MANIFEST and
@@ -42,7 +49,7 @@ macro(auto_apms_behavior_tree_register_nodes target)
 
   # Parse arguments
   set(options "")
-  set(oneValueArgs NODE_MODEL_HEADER_TARGET)
+  set(oneValueArgs NODE_MANIFEST_ALIAS NODE_MODEL_HEADER_TARGET)
   set(multiValueArgs NODE_MANIFEST)
   cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -105,13 +112,30 @@ macro(auto_apms_behavior_tree_register_nodes target)
 
   # Automatically create node metadata if any manifest files are provided
   if("${ARGS_NODE_MANIFEST}" STREQUAL "")
+    if(NOT "${ARGS_NODE_MANIFEST_ALIAS}" STREQUAL "")
+        message(WARNING
+            "auto_apms_behavior_tree_register_nodes(): Argument NODE_MANIFEST_ALIAS requires that you also specify NODE_MANIFEST. Unless you don't specify both arguments, NODE_MANIFEST_ALIAS will be ignored."
+        )
+    endif()
     if(NOT "${ARGS_NODE_MODEL_HEADER_TARGET}" STREQUAL "")
         message(WARNING
-            "Argument NODE_MODEL_HEADER_TARGET requires that you also specify NODE_MANIFEST. Unless you don't specify both arguments, NODE_MODEL_HEADER_TARGET will be ignored."
+            "auto_apms_behavior_tree_register_nodes(): Argument NODE_MODEL_HEADER_TARGET requires that you also specify NODE_MANIFEST. Unless you don't specify both arguments, NODE_MODEL_HEADER_TARGET will be ignored."
         )
     endif()
   else()
-    auto_apms_behavior_tree_generate_node_metadata("${target}" ${ARGS_NODE_MANIFEST} NODE_MODEL_HEADER_TARGET "${ARGS_NODE_MODEL_HEADER_TARGET}")
+    # Apply metadata ID aliasing if a manifest alias is provided, otherwise use the target name as default id.
+    set(metadata_id "${target}")
+    if(NOT "${ARGS_NODE_MANIFEST_ALIAS}" STREQUAL "")
+      set(metadata_id "${ARGS_NODE_MANIFEST_ALIAS}")
+    endif()
+
+    # Generate node metadata for the specified manifests and optionally generate a node model header.
+    auto_apms_behavior_tree_generate_node_metadata(
+      "${metadata_id}"
+      ${ARGS_NODE_MANIFEST}
+      NODE_MODEL_HEADER_TARGET
+      "${ARGS_NODE_MODEL_HEADER_TARGET}"
+    )
   endif()
 
 endmacro()

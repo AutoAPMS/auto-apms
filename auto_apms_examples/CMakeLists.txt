@@ -16,29 +16,32 @@ find_package(auto_apms_mission REQUIRED)
 # ------------ Example Libraries --------------
 #
 
-add_library(example_nodes SHARED
+add_library(${PROJECT_NAME}_example_nodes SHARED
   "src/simple_skill_node.cpp"
 )
-target_link_libraries(example_nodes PUBLIC
+target_link_libraries(${PROJECT_NAME}_example_nodes PUBLIC
   rclcpp_components::component
   ${auto_apms_interfaces_TARGETS}
   auto_apms_util::auto_apms_util
   auto_apms_behavior_tree::auto_apms_behavior_tree
 )
 
-add_library(example_build_handlers SHARED
+add_library(${PROJECT_NAME}_example_build_handlers SHARED
   "src/simple_skill_build_handler.cpp"
 )
-target_link_libraries(example_build_handlers auto_apms_behavior_tree::auto_apms_behavior_tree)
+target_link_libraries(${PROJECT_NAME}_example_build_handlers auto_apms_behavior_tree::auto_apms_behavior_tree)
 
-auto_apms_behavior_tree_register_nodes(example_nodes
+auto_apms_behavior_tree_register_nodes(${PROJECT_NAME}_example_nodes
   "auto_apms_examples::SimpleSkillClient"
   NODE_MANIFEST
   "behavior/simple_skill_node_manifest.yaml"
-  NODE_MODEL_HEADER_TARGET example_build_handlers
+  NODE_MANIFEST_ALIAS
+  "example_nodes"
+  NODE_MODEL_HEADER_TARGET
+  ${PROJECT_NAME}_example_build_handlers
 )
 
-auto_apms_behavior_tree_register_build_handlers(example_build_handlers
+auto_apms_behavior_tree_register_build_handlers(${PROJECT_NAME}_example_build_handlers
   "auto_apms_examples::SimpleSkillBuildHandler"
 )
 
@@ -46,7 +49,7 @@ auto_apms_behavior_tree_register_build_handlers(example_build_handlers
 # ------------ Example Executables --------------
 #
 
-rclcpp_components_register_node(example_nodes
+rclcpp_components_register_node(${PROJECT_NAME}_example_nodes
   PLUGIN "auto_apms_examples::SimpleSkillServer"
   EXECUTABLE "simple_skill_server"
 )
@@ -87,8 +90,8 @@ install(
 
 install(
   TARGETS
-  example_nodes
-  example_build_handlers
+  ${PROJECT_NAME}_example_nodes
+  ${PROJECT_NAME}_example_build_handlers
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
