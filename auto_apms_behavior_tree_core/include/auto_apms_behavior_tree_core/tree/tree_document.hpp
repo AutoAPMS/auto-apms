@@ -659,14 +659,24 @@ public:
 
     /**
      * @brief Get the names of the data ports implemented by the node represented by this element.
-     * @return Names of all implemented data ports.
+     *
+     * @note This method only works as intended if the node represented by this element has already been registered.
+     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
+     * @return Names of all implemented data ports. Empty, if the node's model is not known, e.g. because it has not
+     * been registered yet.
      */
     const std::vector<std::string> & getPortNames() const;
 
     /**
      * @brief Assemble the values given to each data port implemented by this node.
-     * @return Mapping of port names and their corresponding values encoded as strings. If a port name is missing in
-     * this map, no value has been assigned to it yet.
+     *
+     * @note During construction of this NodeElement, we explicitly set the default port values for the implemented
+     * ports as attributes of the node element. Therefore, this method will return poer values even if the user hasn't
+     * explicitly assigned any values to them.
+     * @note This method only works as intended if the node represented by this element has already been registered.
+     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
+     * @return Mapping of port names and their corresponding values encoded as strings. Empty, if the node's model is
+     * not known, e.g. because it has not been registered yet.
      */
     PortValues getPorts() const;
 
@@ -676,6 +686,8 @@ public:
      * This method verifies that @p port_values only refers to implemented ports and throws an exception if any
      * values for unkown port names are provided.
      *
+     * @note This method only works as intended if the node represented by this element has already been registered.
+     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
      * @param port_values Port values to be used to populate the corresponding attributes of the node element.
      * @return Reference to the modified instance.
      * @throws auto_apms_behavior_tree::exceptions::TreeDocumentError if @p port_values contains any unkown keys, e.g.
@@ -685,6 +697,9 @@ public:
 
     /**
      * @brief Delete all currently specified port values and reset with the defaults.
+     *
+     * @note This method only works as intended if the node represented by this element has already been registered.
+     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
      * @return Modified node element.
      */
     NodeElement & resetPorts();
