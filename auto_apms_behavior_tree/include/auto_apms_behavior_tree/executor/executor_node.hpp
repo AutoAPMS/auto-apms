@@ -70,6 +70,33 @@ public:
   TreeExecutorNodeOptions & setDefaultBuildHandler(const std::string & name);
 
   /**
+   * @brief Set a custom name for the start tree executor action server.
+   *
+   * If not set, the default name `<node_name>/start` is used.
+   * @param name Full action name.
+   * @return Modified options object.
+   */
+  TreeExecutorNodeOptions & setStartActionName(const std::string & name);
+
+  /**
+   * @brief Set a custom name for the command tree executor action server.
+   *
+   * If not set, the default name `<node_name>/cmd` is used.
+   * @param name Full action name.
+   * @return Modified options object.
+   */
+  TreeExecutorNodeOptions & setCommandActionName(const std::string & name);
+
+  /**
+   * @brief Set a custom name for the clear blackboard service.
+   *
+   * If not set, the default name `<node_name>/clear_blackboard` is used.
+   * @param name Full service name.
+   * @return Modified options object.
+   */
+  TreeExecutorNodeOptions & setClearBlackboardServiceName(const std::string & name);
+
+  /**
    * @brief Get the ROS 2 node options that comply with the given options.
    * @return Corresponding `rclcpp::NodeOptions` object.
    */
@@ -84,6 +111,9 @@ private:
   bool blackboard_parameters_from_overrides_ = true;
   bool blackboard_parameters_dynamic_ = true;
   std::map<std::string, rclcpp::ParameterValue> custom_default_parameters_;
+  std::string start_action_name_;
+  std::string command_action_name_;
+  std::string clear_blackboard_service_name_;
 };
 
 /**
@@ -278,15 +308,36 @@ protected:
    */
   virtual bool clearGlobalBlackboard() override;
 
+  /* Virtual methods */
+
+  /**
+   * @brief Hook called to determine whether an incoming start action goal should be accepted.
+   *
+   * The default implementation rejects the goal if the executor is currently busy executing a behavior tree. Derived
+   * classes may override this to add additional validation logic.
+   * @param uuid The unique identifier of the incoming goal.
+   * @param goal_ptr Shared pointer to the incoming goal.
+   * @return `true` if the goal should be accepted, `false` if it should be rejected.
+   */
+  virtual bool shouldAcceptStartGoal(
+    const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const StartActionContext::Goal> goal_ptr);
+
+  /**
+   * @brief Hook called after a start action goal has been accepted and before execution begins.
+   *
+   * The default implementation does nothing. Derived classes may override this to perform setup actions
+   * when a start goal is accepted.
+   * @param goal_handle_ptr Shared pointer to the accepted goal handle.
+   */
+  virtual void onAcceptedStartGoal(std::shared_ptr<StartActionContext::GoalHandle> goal_handle_ptr);
+
+  bool onTick() override;
+
+  bool afterTick() override;
+
+  void onTermination(const ExecutionResult & result) override;
+
 private:
-  /* Executor specific virtual overrides */
-
-  bool onTick() override final;
-
-  bool afterTick() override final;
-
-  void onTermination(const ExecutionResult & result) override final;
-
   /* Internal callbacks */
 
   rcl_interfaces::msg::SetParametersResult on_set_parameters_callback_(

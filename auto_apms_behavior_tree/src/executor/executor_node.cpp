@@ -69,6 +69,24 @@ TreeExecutorNodeOptions & TreeExecutorNodeOptions::setDefaultBuildHandler(const 
   return *this;
 }
 
+TreeExecutorNodeOptions & TreeExecutorNodeOptions::setStartActionName(const std::string & name)
+{
+  start_action_name_ = name;
+  return *this;
+}
+
+TreeExecutorNodeOptions & TreeExecutorNodeOptions::setCommandActionName(const std::string & name)
+{
+  command_action_name_ = name;
+  return *this;
+}
+
+TreeExecutorNodeOptions & TreeExecutorNodeOptions::setClearBlackboardServiceName(const std::string & name)
+{
+  clear_blackboard_service_name_ = name;
+  return *this;
+}
+
 rclcpp::NodeOptions TreeExecutorNodeOptions::getROSNodeOptions() const
 {
   rclcpp::NodeOptions opt(ros_node_options_);
@@ -176,23 +194,35 @@ TreeExecutorNode::TreeExecutorNode(const std::string & name, TreeExecutorNodeOpt
   }
 
   using namespace std::placeholders;
+
+  // Determine action/service names: use custom names from options or fall back to defaults
+  const std::string start_action_name =
+    executor_options_.start_action_name_.empty()
+      ? std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX
+      : executor_options_.start_action_name_;
+  const std::string command_action_name =
+    executor_options_.command_action_name_.empty()
+      ? std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_COMMAND_ACTION_NAME_SUFFIX
+      : executor_options_.command_action_name_;
+  const std::string clear_bb_service_name =
+    executor_options_.clear_blackboard_service_name_.empty()
+      ? std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__CLEAR_BLACKBOARD_SERVICE_NAME_SUFFIX
+      : executor_options_.clear_blackboard_service_name_;
+
   start_action_ptr_ = rclcpp_action::create_server<StartActionContext::Type>(
-    node_ptr_, std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX,
-    std::bind(&TreeExecutorNode::handle_start_goal_, this, _1, _2),
+    node_ptr_, start_action_name, std::bind(&TreeExecutorNode::handle_start_goal_, this, _1, _2),
     std::bind(&TreeExecutorNode::handle_start_cancel_, this, _1),
     std::bind(&TreeExecutorNode::handle_start_accept_, this, _1));
 
   command_action_ptr_ = rclcpp_action::create_server<CommandActionContext::Type>(
-    node_ptr_, std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_COMMAND_ACTION_NAME_SUFFIX,
-    std::bind(&TreeExecutorNode::handle_command_goal_, this, _1, _2),
+    node_ptr_, command_action_name, std::bind(&TreeExecutorNode::handle_command_goal_, this, _1, _2),
     std::bind(&TreeExecutorNode::handle_command_cancel_, this, _1),
     std::bind(&TreeExecutorNode::handle_command_accept_, this, _1));
 
   clear_blackboard_service_ptr_ = node_ptr_->create_service<std_srvs::srv::Trigger>(
-    std::string(node_ptr_->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__CLEAR_BLACKBOARD_SERVICE_NAME_SUFFIX,
-    [this](
-      const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
-      std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    clear_bb_service_name, [this](
+                             const std::shared_ptr<std_srvs::srv::Trigger::Request> /*request*/,
+                             std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
       response->success = this->clearGlobalBlackboard();
       if (response->success) {
         response->message = "Blackboard was cleared successfully";
@@ -556,14 +586,25 @@ void TreeExecutorNode::parameter_event_callback_(const rcl_interfaces::msg::Para
   }
 }
 
-rclcpp_action::GoalResponse TreeExecutorNode::handle_start_goal_(
-  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const StartActionContext::Goal> goal_ptr)
+bool TreeExecutorNode::shouldAcceptStartGoal(
+  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const StartActionContext::Goal> /*goal_ptr*/)
 {
-  // Reject if a tree is already executing
   if (isBusy()) {
     RCLCPP_WARN(
       logger_, "Goal %s was REJECTED: Tree '%s' is currently executing.", rclcpp_action::to_string(uuid).c_str(),
       getTreeName().c_str());
+    return false;
+  }
+  return true;
+}
+
+void TreeExecutorNode::onAcceptedStartGoal(std::shared_ptr<StartActionContext::GoalHandle> /*goal_handle_ptr*/) {}
+
+rclcpp_action::GoalResponse TreeExecutorNode::handle_start_goal_(
+  const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const StartActionContext::Goal> goal_ptr)
+{
+  // Validate goal acceptance via virtual hook
+  if (!shouldAcceptStartGoal(uuid, goal_ptr)) {
     return rclcpp_action::GoalResponse::REJECT;
   }
 
@@ -581,8 +622,7 @@ rclcpp_action::GoalResponse TreeExecutorNode::handle_start_goal_(
       RCLCPP_WARN(
         logger_,
         "Goal %s was REJECTED: Current tree build handler '%s' must not change since the 'Allow other build "
-        "handlers' "
-        "option is disabled.",
+        "handlers' option is disabled.",
         rclcpp_action::to_string(uuid).c_str(), current_build_handler_name_.c_str());
       return rclcpp_action::GoalResponse::REJECT;
     }
@@ -601,7 +641,9 @@ rclcpp_action::GoalResponse TreeExecutorNode::handle_start_goal_(
   try {
     tree_constructor_ = makeTreeConstructor(goal_ptr->build_request, goal_ptr->entry_point, node_manifest);
   } catch (const std::exception & e) {
-    RCLCPP_WARN(logger_, "Goal %s was REJECTED: %s", rclcpp_action::to_string(uuid).c_str(), e.what());
+    RCLCPP_WARN(
+      logger_, "Goal %s was REJECTED: Exception in makeTreeConstructor(): %s", rclcpp_action::to_string(uuid).c_str(),
+      e.what());
     return rclcpp_action::GoalResponse::REJECT;
   }
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -616,6 +658,9 @@ rclcpp_action::CancelResponse TreeExecutorNode::handle_start_cancel_(
 
 void TreeExecutorNode::handle_start_accept_(std::shared_ptr<StartActionContext::GoalHandle> goal_handle_ptr)
 {
+  // Notify derived classes that the goal has been accepted
+  onAcceptedStartGoal(goal_handle_ptr);
+
   // Clear blackboard parameters if desired
   if (goal_handle_ptr->get_goal()->clear_blackboard) {
     clearGlobalBlackboard();
