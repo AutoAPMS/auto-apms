@@ -37,10 +37,10 @@ from .resources import BehaviorResource, NodeManifest
 GENERIC_NODE_NAME = HIDDEN_NODE_PREFIX + "auto_apms_behavior_tree"
 
 
-def find_start_tree_executor_actions() -> list[tuple[str, str]]:
+def find_start_tree_executor_actions() -> list[str]:
     """
     Returns:
-        list: list of tuples (action_name, node_name) for all available StartTreeExecutor actions.
+        list: list of action names for all available StartTreeExecutor actions.
     """
     action_type = "auto_apms_interfaces/action/StartTreeExecutor"
     actions = []
@@ -48,11 +48,7 @@ def find_start_tree_executor_actions() -> list[tuple[str, str]]:
         action_list = node.get_action_names_and_types()
         for action_name, types in action_list:
             if action_type in types:
-                # action_name is the full action path, e.g. '/my_executor/start_tree_executor'
-                # node_name is not directly available, but we can extract the executor name
-                # from the action_name if it matches the pattern
-                executor_name = action_name.strip("/").split("/")[0]
-                actions.append((action_name, executor_name))
+                actions.append(action_name)
     return actions
 
 
@@ -237,11 +233,12 @@ def call_start_tree_action(
 
 
 def sync_run_generic_behavior_with_executor(
-    executor_name: str,
+    action_name: str,
     build_request: str | None,
     build_handler: str | None = None,
     entry_point: str | None = None,
     node_manifest: NodeManifest = None,
+    executor_node_name: str | None = None,
     static_params: dict = None,
     blackboard_params: dict = None,
     keep_blackboard: bool = False,
@@ -251,50 +248,47 @@ def sync_run_generic_behavior_with_executor(
     Execute a behavior on a remote executor node.
 
     Args:
-        executor_name: Name of the behavior tree executor
+        action_name: Name of the StartTreeExecutor action to call for starting the behavior execution
+            (e.g. '/my_executor/start_tree_executor).
         build_request: A behavior build request string or None for letting the build handler
             decide how to build the tree without a specific build request
         build_handler: Optional build handler to use for building the behavior
         entry_point: Optional entry point to use for building the behavior
         node_manifest: Optional node manifest that provides registration options for the behavior tree nodes required
             by the behavior.
+        executor_node_name: Name of the behavior tree executor node (e.g. 'my_executor').
+            If specified, the function will attempt to configure the node before execution.
+            If None, `static_params`, `blackboard_params`, `keep_blackboard` and `logging_level` arguments will be
+            ignored.
         static_params: Static parameters to set on the executor
         blackboard_params: Blackboard parameters to set on the executor
         keep_blackboard: Do not clear the blackboard before execution
         logging_level: Logger level to set on the executor
     """
-    # Find the full action name for the given executor
-    try:
-        executor_actions = find_start_tree_executor_actions()
-        action_name = None
-        for full_action, executor in executor_actions:
-            if executor == executor_name:
-                action_name = full_action
-                break
-        if not action_name:
-            raise RuntimeError(f"No StartTreeExecutor action found for executor '{executor_name}'")
-    except Exception as e:
-        raise RuntimeError(f"Could not discover behavior executors: {e}") from e
-
     with DirectNode(None, node_name=GENERIC_NODE_NAME) as node:
-        node.get_logger().info(f"Targeting behavior executor '{executor_name}' (Action '{action_name}')")
+        node.get_logger().info(f"Targeting behavior execution action '{action_name}'")
 
-        # Set logger level if requested
-        if logging_level is not None:
-            call_set_logger_level(node, executor_name, logging_level)
-        # Clear blackboard if not instructed otherwise
-        if not keep_blackboard:
-            call_clear_blackboard_for_executor(node, executor_name)
-        # Set parameters before sending the goal
-        if static_params or blackboard_params:
-            call_set_parameters_for_executor(node, executor_name, static_params, blackboard_params)
-        if static_params and "tick_rate" in static_params:
-            tick_rate = static_params["tick_rate"]
-        else:
-            response: GetParameters.Response = call_get_parameters(
-                node=node, node_name=executor_name, parameter_names=["tick_rate"]
-            )
-            tick_rate = get_value(parameter_value=response.values[0])
+        timeout_sec = 5.0
+        if executor_node_name:
+            node.get_logger().info(f"Configuring executor node '{executor_node_name}'")
+            # Set logger level if requested
+            if logging_level is not None:
+                call_set_logger_level(node, executor_node_name, logging_level)
+            # Clear blackboard if not instructed otherwise
+            if not keep_blackboard:
+                call_clear_blackboard_for_executor(node, executor_node_name)
+            # Set parameters before sending the goal
+            if static_params or blackboard_params:
+                call_set_parameters_for_executor(node, executor_node_name, static_params, blackboard_params)
+            if static_params and "tick_rate" in static_params:
+                tick_rate = static_params["tick_rate"]
+            else:
+                response: GetParameters.Response = call_get_parameters(
+                    node=node, node_name=executor_node_name, parameter_names=["tick_rate"]
+                )
+                tick_rate = get_value(parameter_value=response.values[0])
+            timeout_sec = max(tick_rate * 2.5, 5.0)
+
         return call_start_tree_action(
             node,
             action_name,
@@ -303,7 +297,7 @@ def sync_run_generic_behavior_with_executor(
             entry_point=entry_point,
             node_manifest=node_manifest,
             clear_blackboard=False,
-            timeout_sec=max(tick_rate * 2.5, 5.0),
+            timeout_sec=timeout_sec,
         )
 
 

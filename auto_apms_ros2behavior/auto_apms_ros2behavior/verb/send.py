@@ -42,15 +42,22 @@ class SendVerb(VerbExtension):
         """Add arguments for the send verb."""
         parser.description = inspect.cleandoc(self.__doc__)
 
-        # Discover available StartTreeExecutor actions for autocompletion
+        # Discover available StartTreeExecutor actions and try to guess executor name
         executor_actions = find_start_tree_executor_actions()
-        executor_names = [executor for _, executor in executor_actions]
-        executor_arg = parser.add_argument(
-            "executor_name",
+        self.action_executor_mapping = {}
+        for action in executor_actions:
+            stripped = action.strip("/")
+            if "/" in stripped:
+                # Guess the executor name from the action name by taking the first part
+                # of the action name before the first slash
+                self.action_executor_mapping[action] = stripped.split("/")[0]
+
+        action_arg = parser.add_argument(
+            "action_name",
             type=str,
-            help="Name of the behavior executor to send the behavior to",
+            help="Name of the StartTreeExecutor action to send the behavior to",
         )
-        executor_arg.completer = PrefixFilteredChoicesCompleter(executor_names)
+        action_arg.completer = PrefixFilteredChoicesCompleter(executor_actions)
         behavior_arg = add_behavior_resource_argument_to_parser(parser)
         behavior_arg.nargs = "?"  # Make the behavior argument optional
         parser.add_argument(
@@ -77,6 +84,12 @@ class SendVerb(VerbExtension):
             metavar="IDENTITY",
         )
         manifest_arg.completer = PrefixFilteredChoicesCompleter(get_node_manifest_resource_identities())
+        parser.add_argument(
+            "-e",
+            "--executor",
+            type=str,
+            help="Name of the behavior executor node that implements the StartTreeExecutor action (guessed from action_name if omitted)",
+        )
         parser.add_argument(
             "--blackboard",
             nargs="*",
@@ -145,12 +158,27 @@ class SendVerb(VerbExtension):
         # Parse blackboard key-value pairs
         blackboard_params = parse_key_value_args(args.blackboard)
 
+        # If executor_node_name is omitted, populate it by guessing from the action name (if possible).
+        # If the action name does not follow the typical pattern of '/executor_name/start_tree_executor',
+        # executor_node_name will be None and the function will proceed without attempting to configure the
+        # executor node.
+        # If the executor node configuration step shall be skipped explicitly, the user may set the executor
+        # argument to an empty string.
+        action_name = args.action_name
+        if args.executor is None:
+            executor_node_name = self.action_executor_mapping.get(action_name, None)
+        elif args.executor == "":
+            executor_node_name = None
+        else:
+            executor_node_name = args.executor
+
         return sync_run_generic_behavior_with_executor(
-            executor_name=args.executor_name,
+            action_name=action_name,
             build_request=build_request,
             build_handler=build_handler,
             entry_point=entry_point,
             node_manifest=node_manifest,
+            executor_node_name=executor_node_name,
             static_params=static_params,
             blackboard_params=blackboard_params,
             keep_blackboard=args.keep_blackboard,
