@@ -20,10 +20,10 @@ namespace auto_apms_behavior_tree::core
 {
 
 /**
- * @brief A node registration interface that loads and registers behavior tree nodes from one or more plugin
- * libraries using `BT::BehaviorTreeFactory::registerFromPlugin`.
+ * @brief A node registration interface that is able to load and registers behavior tree nodes from a shared library
+ * using `BT::BehaviorTreeFactory::registerFromPlugin`.
  *
- * The libraries must export the `BT_RegisterNodesFromPlugin(factory)` symbol which is the ROS-agnostic approach of
+ * The libraries must export the `BT_RegisterNodesFromPlugin(factory)` symbol which is the ROS-agnostic approach for
  * distributing behavior tree nodes through plugins in BehaviorTree.CPP.
  *
  * You can find an example of how to implement the required plugin export macro in the official BehaviorTree.CPP
@@ -35,9 +35,36 @@ namespace auto_apms_behavior_tree::core
  * 1. Create a subclass of this adapter for each plugin library you want to load nodes from and implement the
  *    NodeRegistrationFromLibraryAdapter::getPluginLibraryPath() method to return the correct library path.
  *
- * 2. In your node manifest YAML, specify the fully qualified name of the adapter subclass as the class name for the
+ * 2. Use the NODE_REGISTRATION_TYPE keyword in the `auto_apms_behavior_tree_register_nodes` macro in your
+ *    CMakeLists.txt to specify the adapter subclass as the registration type for the nodes you want to register from
+ *    the plugin library.
+ *
+ *    ```cmake
+ *    auto_apms_behavior_tree_register_nodes(my_nodes
+ *      my_package::MyNodeRegistrationType
+ *      NODE_REGISTRATION_TYPE my_package::MyNodeRegistrationType
+ *    )
+ *    ```
+ *
+ *    In this case, you need to specify `my_package::MyNodeRegistrationType` both under ARGN and NODE_REGISTRATION_TYPE.
+ *    Supplying multiple args under ARGN would create ambiguity, because there would be multiple names for the same
+ *    collection of nodes. The convention is to call this macro once for each node registration type (if it's not a
+ *    template).
+ *
+ * 3. In your node manifest YAML, specify the fully qualified name of the adapter subclass as the class name for the
  *    nodes you want to register from the plugin library. You can specify the same adapter subclass multiple times with
  *    different registration names to register multiple nodes from the same library.
+ *
+ *    ```yaml
+ *    MyNodeName:
+ *      class_name: my_package::MyNodeRegistrationType
+ *
+ *     MyOtherNodeName:
+ *       class_name: my_package::MyNodeRegistrationType
+ *    ```
+ *
+ *    As you see, it is also possible to register multiple nodes from the same plugin library using the same adapter
+ *    subclass.
  */
 class NodeRegistrationFromLibraryAdapter : public NodeRegistrationInterface
 {
