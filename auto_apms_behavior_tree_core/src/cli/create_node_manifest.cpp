@@ -29,7 +29,7 @@ int main(int argc, char ** argv)
   if (argc < 5) {
     std::cerr << "create_node_manifest: Missing inputs! The program requires: \n\t1.) the yaml "
                  "node manifest files (separated by ';').\n\t2.) Build information for nodes supposed to be "
-                 "registered during build time (List of '<class_name>@<library_build_path>' "
+                 "registered during build time (List of '<class_name>@<library_build_path>@<registration_type>' "
                  "separated by ';').\n\t3.) The name of the package that provides the build targets.\n\t4.) Output "
                  "file for the complete node plugin manifest.\n\t";
     std::cerr << "Usage: create_node_manifest <manifest_files> <build_infos> <build_package_name> "
@@ -61,23 +61,28 @@ int main(int argc, char ** argv)
 
     // Interpret build info
     std::map<std::string, std::string> library_paths_build_package;
+    std::map<std::string, std::string> registration_types_build_package;
     std::map<std::string, std::string> reserved_names;
     for (const auto & build_info : build_infos) {
       std::vector<std::string> parts = auto_apms_util::splitString(build_info, "@");
-      if (parts.size() != 2) {
-        throw std::runtime_error("Invalid build info entry ('" + build_info + "').");
+      if (parts.size() != 3) {
+        throw std::runtime_error(
+          "Invalid build info entry ('" + build_info +
+          "'). Expected format: '<class_name>@<library_path>@<registration_type>'.");
       }
       const std::string & class_name = parts[0];
       const std::string & build_path = parts[1];
+      const std::string & registration_type = parts[2];
       if (library_paths_build_package.find(class_name) != library_paths_build_package.end()) {
         throw std::runtime_error("Node class '" + class_name + "' is specified multiple times in build infos.");
       }
-      library_paths_build_package[class_name] = build_path;  // {class_name: build_path}
-      reserved_names[class_name] = build_package_name;       // Additional names for the ambiguity check
+      library_paths_build_package[class_name] = build_path;              // {class_name: build_path}
+      registration_types_build_package[class_name] = registration_type;  // {class_name: registration_type}
+      reserved_names[class_name] = build_package_name;                   // Additional names for the ambiguity check
     }
 
     // Construct manifest object from input files
-    const core::NodeManifest output_manifest = core::NodeManifest::fromFiles(manifest_files);
+    core::NodeManifest output_manifest = core::NodeManifest::fromFiles(manifest_files);
 
     /**
      * Trying to construct NodeRegistrationLoader will work completely fine during build time for all packages
@@ -115,16 +120,19 @@ int main(int argc, char ** argv)
 
     // Determine shared libraries associated with the node classes required by the manifest files
     std::set<std::string> library_paths;
+    std::map<std::string, std::string> registration_types;  // class_name -> registration_type
     for (const auto & [node_name, params] : output_manifest.map()) {
       // Look for class in the build package
       if (library_paths_build_package.find(params.class_name) != library_paths_build_package.end()) {
         library_paths.insert(library_paths_build_package[params.class_name]);
+        registration_types[params.class_name] = registration_types_build_package[params.class_name];
         continue;
       }
 
       // Look for class in other already installed packages if it is not provided by the build package
       if (loader_ptr != nullptr && loader_ptr->isClassAvailable(params.class_name)) {
         library_paths.insert(loader_ptr->getClassLibraryPath(params.class_name));
+        registration_types[params.class_name] = loader_ptr->getClassType(params.class_name);
         continue;
       }
 
@@ -140,12 +148,20 @@ int main(int argc, char ** argv)
     // Save the manifest (Merged multiple files into s single one)
     output_manifest.toFile(output_file);
 
-    // Print the shared library paths associated with the node manifest to stdout.
-    // We use ';' as separator without a trailing ';'
+    // Print two lines to stdout:
+    // Line 1: shared library paths (semicolon-separated)
+    // Line 2: registration type mappings (semicolon-separated class_name=registration_type)
     bool first = true;
     for (const auto & path : library_paths) {
       if (!first) std::cout << ';';
       std::cout << path;
+      first = false;
+    }
+    std::cout << '\n';
+    first = true;
+    for (const auto & [class_name, reg_type] : registration_types) {
+      if (!first) std::cout << ';';
+      std::cout << class_name << '=' << reg_type;
       first = false;
     }
   } catch (const std::exception & e) {
