@@ -161,7 +161,7 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
       "${PROJECT_NAME}"  # Name of the package that builds the behavior tree model
       "${_generated_node_manifest_abs_path__build}"  # File to write the behavior tree node plugin manifest to
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    OUTPUT_VARIABLE _node_library_paths
+    OUTPUT_VARIABLE _create_node_manifest_output
     RESULT_VARIABLE _return_code
     ERROR_VARIABLE _error
   )
@@ -175,9 +175,14 @@ ${_error}"
 )
   endif()
 
-  # Strip any trailing whitespace/newlines from the output
-  string(STRIP "${_node_library_paths}" _node_library_paths)
-  # Also strip any trailing semicolons just to be safe
+  # Parse the two-line output from create_node_manifest:
+  #   Line 1: library paths (semicolon-separated)
+  #   Line 2: registration type mappings (semicolon-separated class_name=registration_type)
+  string(STRIP "${_create_node_manifest_output}" _create_node_manifest_output)
+  string(REGEX MATCH "^[^\n]+" _node_library_paths "${_create_node_manifest_output}")
+  string(REGEX MATCH "\n(.+)" _ "${_create_node_manifest_output}")
+  set(_node_registration_types "${CMAKE_MATCH_1}")
+  # Strip any trailing semicolons just to be safe
   string(REGEX REPLACE ";+$" "" _node_library_paths "${_node_library_paths}")
 
   message(STATUS "Generated behavior tree node manifest ${_generated_node_manifest_abs_path__build} (Relevant libraries: [${_node_library_paths}]).")
@@ -195,6 +200,11 @@ ${_error}"
       # If we wouldn't do this, there would be an error saying 'there is no rule to make target ...'.
       # Additionally, this variable needs to be passed to DEPENDS to create a file-level dependency to the shared library files which makes sure that the command is executed when they are recompiled.
       "\"${_node_library_paths}\""
+
+      # Registration type mappings (semicolon-separated class_name=registration_type) collected by
+      # create_node_manifest from build info and pluginlib. Forwarded here so create_node_model can
+      # look up the correct class_loader type for each node without storing it in the manifest YAML.
+      "\"${_node_registration_types}\""
 
       "\"${_generated_node_model_abs_path__build}\"" # File to write the behavior tree node model to
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

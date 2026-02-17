@@ -152,7 +152,6 @@ public:
   using ExecutorParameterListener = executor_params::ParamListener;
   using StartActionContext = auto_apms_util::ActionContext<auto_apms_interfaces::action::StartTreeExecutor>;
   using CommandActionContext = auto_apms_util::ActionContext<auto_apms_interfaces::action::CommandTreeExecutor>;
-  using TreeBuilder = core::TreeBuilder;
 
   inline static const std::string PARAM_VALUE_NO_BUILD_HANDLER = "none";
   inline static const std::string SCRIPTING_ENUM_PARAM_PREFIX = "enum";
@@ -217,7 +216,7 @@ private:
    * and is passed when instantiating the tree. Changes to this blackboard are not reflected on the global blackboard.
    */
   virtual void preBuild(
-    TreeBuilder & builder, const std::string & build_request, const std::string & entry_point,
+    core::TreeBuilder & builder, const std::string & build_request, const std::string & entry_point,
     const core::NodeManifest & node_manifest, TreeBlackboard & bb);
 
   /**
@@ -383,7 +382,7 @@ private:
   rclcpp::ParameterEventCallbackHandle::SharedPtr parameter_event_callback_handle_ptr_;
   core::NodeRegistrationLoader::SharedPtr tree_node_loader_ptr_;
   TreeBuildHandlerLoader::UniquePtr build_handler_loader_ptr_;
-  TreeBuilder::UniquePtr builder_ptr_;
+  core::TreeBuilder::UniquePtr builder_ptr_;
   TreeBuildHandler::UniquePtr build_handler_ptr_;
   std::string current_build_handler_name_;
   std::map<std::string, int> scripting_enums_;
