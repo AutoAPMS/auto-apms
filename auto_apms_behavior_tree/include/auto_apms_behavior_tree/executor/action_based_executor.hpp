@@ -35,6 +35,7 @@ namespace auto_apms_behavior_tree
  * Derived classes may optionally override:
  * - `shouldAcceptGoal()`: Custom goal acceptance logic.
  * - `onAcceptedGoal()`: Hook called after a goal is accepted.
+ * - `onExecutionStarted()`: Hook called after execution has started successfully.
  * - `onGoalExecutionTermination()`: Handle the result of the execution for the action client.
  *
  * @tparam ActionT The ROS 2 action type that triggers the behavior tree execution.
@@ -53,10 +54,9 @@ public:
    * @brief Constructor.
    * @param name Name of the `rclcpp::Node`.
    * @param action_name Name for the trigger action server.
-   * @param options Event-based executor options.
+   * @param options Executor options.
    */
-  ActionBasedTreeExecutor(
-    const std::string & name, const std::string & action_name, GenericEventBasedTreeExecutorOptions options);
+  ActionBasedTreeExecutor(const std::string & name, const std::string & action_name, Options options);
 
   /**
    * @brief Constructor with default options.
@@ -140,7 +140,7 @@ private:
 
 template <typename ActionT>
 ActionBasedTreeExecutor<ActionT>::ActionBasedTreeExecutor(
-  const std::string & name, const std::string & action_name, GenericEventBasedTreeExecutorOptions options)
+  const std::string & name, const std::string & action_name, Options options)
 : GenericEventBasedTreeExecutor(name, options), trigger_action_context_(logger_)
 {
   using namespace std::placeholders;
@@ -153,7 +153,7 @@ ActionBasedTreeExecutor<ActionT>::ActionBasedTreeExecutor(
 template <typename ActionT>
 ActionBasedTreeExecutor<ActionT>::ActionBasedTreeExecutor(
   const std::string & name, const std::string & action_name, rclcpp::NodeOptions ros_options)
-: ActionBasedTreeExecutor(name, action_name, GenericEventBasedTreeExecutorOptions(ros_options))
+: ActionBasedTreeExecutor(name, action_name, Options(ros_options))
 {
 }
 

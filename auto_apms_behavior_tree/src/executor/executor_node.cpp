@@ -25,72 +25,12 @@
 namespace auto_apms_behavior_tree
 {
 
-static const std::vector<std::string> EXPLICITLY_ALLOWED_PARAMETERS{
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_OTHER_BUILD_HANDLERS,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_BLACKBOARD,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_SCRIPTING_ENUMS,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_NODE,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_BUILD_HANDLER,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_BUILD_HANDLER,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_TICK_RATE,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_GROOT2_PORT,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_STATE_CHANGE_LOGGER};
-
-// --- TreeExecutorNodeOptions ---
-
-TreeExecutorNodeOptions::TreeExecutorNodeOptions(const rclcpp::NodeOptions & ros_node_options)
-: GenericEventBasedTreeExecutorOptions(ros_node_options)
-{
-  // TreeExecutorNode defaults: enable all parameter features (matching original behavior)
-  enableScriptingEnumParameters(true, true);
-  enableGlobalBlackboardParameters(true, true);
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::enableScriptingEnumParameters(bool from_overrides, bool dynamic)
-{
-  GenericEventBasedTreeExecutorOptions::enableScriptingEnumParameters(from_overrides, dynamic);
-  return *this;
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::enableGlobalBlackboardParameters(bool from_overrides, bool dynamic)
-{
-  GenericEventBasedTreeExecutorOptions::enableGlobalBlackboardParameters(from_overrides, dynamic);
-  return *this;
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::setDefaultBuildHandler(const std::string & name)
-{
-  GenericEventBasedTreeExecutorOptions::setDefaultBuildHandler(name);
-  return *this;
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::setStartActionName(const std::string & name)
-{
-  start_action_name_ = name;
-  return *this;
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::setCommandActionName(const std::string & name)
-{
-  GenericEventBasedTreeExecutorOptions::setCommandActionName(name);
-  return *this;
-}
-
-TreeExecutorNodeOptions & TreeExecutorNodeOptions::setClearBlackboardServiceName(const std::string & name)
-{
-  GenericEventBasedTreeExecutorOptions::setClearBlackboardServiceName(name);
-  return *this;
-}
-
-// --- TreeExecutorNode ---
-
-TreeExecutorNode::TreeExecutorNode(const std::string & name, TreeExecutorNodeOptions executor_options)
+TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string & start_action_name, Options options)
 : ActionBasedTreeExecutor<auto_apms_interfaces::action::StartTreeExecutor>(
     name,
-    executor_options.start_action_name_.empty() ? name + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX
-                                                : executor_options.start_action_name_,
-    executor_options),
-  node_options_(executor_options)
+    start_action_name.empty() ? name + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX : start_action_name,
+    options),
+  executor_options_(options)
 {
   // Remove all parameters from overrides that are not supported
   rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
@@ -98,7 +38,7 @@ TreeExecutorNode::TreeExecutorNode(const std::string & name, TreeExecutorNodeOpt
   for (const std::string & param_name : res.names) {
     if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
     if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
-    if (auto_apms_util::contains(EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
+    if (auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
     try {
       node_ptr_->undeclare_parameter(param_name);
     } catch (const rclcpp::exceptions::ParameterImmutableException & e) {
@@ -140,8 +80,10 @@ TreeExecutorNode::TreeExecutorNode(const std::string & name, TreeExecutorNodeOpt
   }
 }
 
-TreeExecutorNode::TreeExecutorNode(rclcpp::NodeOptions options)
-: TreeExecutorNode(_AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_DEFAULT_NAME, TreeExecutorNodeOptions(options))
+TreeExecutorNode::TreeExecutorNode(const std::string & name, Options options) : TreeExecutorNode(name, "", options) {}
+
+TreeExecutorNode::TreeExecutorNode(rclcpp::NodeOptions ros_options)
+: TreeExecutorNode(_AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_DEFAULT_NAME, Options(ros_options))
 {
 }
 

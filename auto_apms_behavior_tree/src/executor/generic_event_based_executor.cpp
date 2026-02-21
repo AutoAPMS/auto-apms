@@ -28,94 +28,7 @@
 namespace auto_apms_behavior_tree
 {
 
-// --- GenericEventBasedTreeExecutorOptions ---
-
-GenericEventBasedTreeExecutorOptions::GenericEventBasedTreeExecutorOptions(const rclcpp::NodeOptions & ros_node_options)
-: ros_node_options_(ros_node_options)
-{
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::enableCommandAction(bool enable)
-{
-  enable_command_action_ = enable;
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::enableClearBlackboardService(bool enable)
-{
-  enable_clear_blackboard_service_ = enable;
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::enableScriptingEnumParameters(
-  bool from_overrides, bool dynamic)
-{
-  scripting_enum_parameters_from_overrides_ = from_overrides;
-  scripting_enum_parameters_dynamic_ = dynamic;
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::enableGlobalBlackboardParameters(
-  bool from_overrides, bool dynamic)
-{
-  blackboard_parameters_from_overrides_ = from_overrides;
-  blackboard_parameters_dynamic_ = dynamic;
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::setDefaultBuildHandler(
-  const std::string & name)
-{
-  custom_default_parameters_[_AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_BUILD_HANDLER] = rclcpp::ParameterValue(name);
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::setCommandActionName(
-  const std::string & name)
-{
-  command_action_name_ = name;
-  return *this;
-}
-
-GenericEventBasedTreeExecutorOptions & GenericEventBasedTreeExecutorOptions::setClearBlackboardServiceName(
-  const std::string & name)
-{
-  clear_blackboard_service_name_ = name;
-  return *this;
-}
-
-rclcpp::NodeOptions GenericEventBasedTreeExecutorOptions::getROSNodeOptions() const
-{
-  rclcpp::NodeOptions opt(ros_node_options_);
-  opt.automatically_declare_parameters_from_overrides(
-    scripting_enum_parameters_from_overrides_ || blackboard_parameters_from_overrides_);
-  opt.allow_undeclared_parameters(scripting_enum_parameters_dynamic_ || blackboard_parameters_dynamic_);
-
-  // Default configuration
-  opt.enable_logger_service(true);
-
-  return opt;
-}
-
-// --- GenericEventBasedTreeExecutor ---
-
-static const std::vector<std::string> EVENT_BASED_EXPLICITLY_ALLOWED_PARAMETERS{
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_OTHER_BUILD_HANDLERS,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_BLACKBOARD,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_SCRIPTING_ENUMS,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_NODE,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_BUILD_HANDLER,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_BUILD_HANDLER,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_TICK_RATE,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_GROOT2_PORT,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_STATE_CHANGE_LOGGER};
-
-static const std::vector<std::string> EVENT_BASED_EXPLICITLY_ALLOWED_PARAMETERS_WHILE_BUSY{
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_BLACKBOARD,
-  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_STATE_CHANGE_LOGGER};
-
-GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(
-  const std::string & name, GenericEventBasedTreeExecutorOptions options)
+GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(const std::string & name, Options options)
 : TreeExecutorBase(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions())),
   executor_options_(options),
   executor_param_listener_(node_ptr_)
@@ -233,7 +146,7 @@ GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(
 }
 
 GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(rclcpp::NodeOptions options)
-: GenericEventBasedTreeExecutor("event_based_tree_executor", GenericEventBasedTreeExecutorOptions(options))
+: GenericEventBasedTreeExecutor("event_based_tree_executor", Options(options))
 {
 }
 
@@ -493,12 +406,12 @@ rcl_interfaces::msg::SetParametersResult GenericEventBasedTreeExecutor::on_set_p
     }
 
     // Check if parameter is known
-    if (!auto_apms_util::contains(EVENT_BASED_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) {
+    if (!auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) {
       return create_rejected("Parameter is unkown");
     }
 
     // Check if the parameter is allowed to change during execution
-    if (isBusy() && !auto_apms_util::contains(EVENT_BASED_EXPLICITLY_ALLOWED_PARAMETERS_WHILE_BUSY, param_name)) {
+    if (isBusy() && !auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS_WHILE_BUSY, param_name)) {
       return create_rejected("Parameter is not allowed to change while tree executor is running");
     }
 

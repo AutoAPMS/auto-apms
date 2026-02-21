@@ -21,81 +21,6 @@ namespace auto_apms_behavior_tree
 {
 
 /**
- * @brief Configuration options for TreeExecutorNode.
- *
- * This allows to hardcode certain configurations. During initialization, a TreeExecutorNode parses the provided options
- * and activates/deactivates the corresponding features. Inherits from GenericEventBasedTreeExecutorOptions and adds
- * the StartTreeExecutor action configuration.
- */
-class TreeExecutorNodeOptions : public GenericEventBasedTreeExecutorOptions
-{
-public:
-  /**
-   * @brief Constructor.
-   *
-   * Executor options must be created by passing an existing `rclcpp::NodeOptions` object.
-   * @param ros_node_options ROS 2 node options.
-   */
-  TreeExecutorNodeOptions(const rclcpp::NodeOptions & ros_node_options);
-
-  /**
-   * @brief Configure whether the executor node accepts scripting enum parameters.
-   * @param from_overrides `true` allows to set scripting enums from parameter overrides, `false` forbids that.
-   * @param dynamic `true` allows to dynamically set scripting enums at runtime, `false` forbids that.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & enableScriptingEnumParameters(bool from_overrides, bool dynamic);
-
-  /**
-   * @brief Configure whether the executor node accepts global blackboard parameters.
-   * @param from_overrides `true` allows to set global blackboard entries from parameter overrides, `false` forbids
-   * that.
-   * @param dynamic `true` allows to dynamically set global blackboard entries at runtime, `false` forbids that.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & enableGlobalBlackboardParameters(bool from_overrides, bool dynamic);
-
-  /**
-   * @brief Specify a default behavior tree build handler that will be used initially.
-   * @param name Fully qualified class name of the behavior tree build handler plugin.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & setDefaultBuildHandler(const std::string & name);
-
-  /**
-   * @brief Set a custom name for the start tree executor action server.
-   *
-   * If not set, the default name `<node_name>/start` is used.
-   * @param name Full action name.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & setStartActionName(const std::string & name);
-
-  /**
-   * @brief Set a custom name for the command tree executor action server.
-   *
-   * If not set, the default name `<node_name>/cmd` is used.
-   * @param name Full action name.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & setCommandActionName(const std::string & name);
-
-  /**
-   * @brief Set a custom name for the clear blackboard service.
-   *
-   * If not set, the default name `<node_name>/clear_blackboard` is used.
-   * @param name Full service name.
-   * @return Modified options object.
-   */
-  TreeExecutorNodeOptions & setClearBlackboardServiceName(const std::string & name);
-
-private:
-  friend class TreeExecutorNode;
-
-  std::string start_action_name_;
-};
-
-/**
  * @ingroup auto_apms_behavior_tree
  * @brief Flexible ROS 2 node implementing a standardized interface for dynamically executing behavior trees.
  *
@@ -105,7 +30,13 @@ private:
  * A behavior tree can be executed via command line:
  *
  * ```sh
- * ros2 run auto_apms_behavior_tree run_behavior <build_request>
+ * ros2 run auto_apms_behavior_tree run_behavior <build_request> ...
+ * ```
+ *
+ * or using the ROS 2 CLI integration offered by `auto_apms_ros2behavior`:
+ *
+ * ```sh
+ * ros2 behavior run <behavior_resource> ...
  * ```
  *
  * Alternatively, an executor can also be included as part of a ROS 2 components container. The following executor
@@ -126,21 +57,28 @@ private:
 class TreeExecutorNode : public ActionBasedTreeExecutor<auto_apms_interfaces::action::StartTreeExecutor>
 {
 public:
-  using Options = TreeExecutorNodeOptions;
+  /**
+   * @brief Constructor allowing to specify a custom node name and executor options.
+   * @param name Default name of the `rclcpp::Node`.
+   * @param start_action_name Name for the StartTreeExecutor action server. If empty, defaults to `<node_name>/start`.
+   * @param options Executor specific options. Simply pass a `rclcpp::NodeOptions` object to use the default
+   * options.
+   */
+  TreeExecutorNode(const std::string & name, const std::string & start_action_name, Options options);
 
   /**
    * @brief Constructor allowing to specify a custom node name and executor options.
    * @param name Default name of the `rclcpp::Node`.
-   * @param executor_options Executor specific options. Simply pass a `rclcpp::NodeOptions` object to use the default
+   * @param options Executor specific options. Simply pass a `rclcpp::NodeOptions` object to use the default
    * options.
    */
-  TreeExecutorNode(const std::string & name, TreeExecutorNodeOptions executor_options);
+  TreeExecutorNode(const std::string & name, Options options);
 
   /**
    * @brief Constructor populating both the node's name and the executor options with the default.
    * @param options Options forwarded to rclcpp::Node constructor.
    */
-  explicit TreeExecutorNode(rclcpp::NodeOptions options);
+  explicit TreeExecutorNode(rclcpp::NodeOptions ros_options);
 
   virtual ~TreeExecutorNode() override = default;
 
@@ -198,7 +136,7 @@ protected:
   bool afterTick() override;
 
 private:
-  const TreeExecutorNodeOptions node_options_;
+  const TreeExecutorNodeOptions executor_options_;
 };
 
 }  // namespace auto_apms_behavior_tree

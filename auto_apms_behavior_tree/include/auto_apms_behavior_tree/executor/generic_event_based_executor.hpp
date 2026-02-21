@@ -16,6 +16,7 @@
 
 #include "auto_apms_behavior_tree/build_handler/build_handler_loader.hpp"
 #include "auto_apms_behavior_tree/executor/executor_base.hpp"
+#include "auto_apms_behavior_tree/executor/options.hpp"
 #include "auto_apms_behavior_tree/executor_params.hpp"
 #include "auto_apms_behavior_tree_core/builder.hpp"
 #include "auto_apms_behavior_tree_core/node/node_registration_loader.hpp"
@@ -27,96 +28,24 @@
 namespace auto_apms_behavior_tree
 {
 
-/**
- * @brief Configuration options for GenericEventBasedTreeExecutor.
- *
- * This allows configuring which features of the event-based executor are enabled, such as the command action
- * interface, parameter/blackboard synchronization, and scripting enum support.
- */
-class GenericEventBasedTreeExecutorOptions
-{
-public:
-  /**
-   * @brief Constructor.
-   * @param ros_node_options ROS 2 node options.
-   */
-  GenericEventBasedTreeExecutorOptions(const rclcpp::NodeOptions & ros_node_options = rclcpp::NodeOptions());
+static const std::vector<std::string> TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS{
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_OTHER_BUILD_HANDLERS,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_BLACKBOARD,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_SCRIPTING_ENUMS,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_NODE,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_EXCLUDE_PACKAGES_BUILD_HANDLER,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_BUILD_HANDLER,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_TICK_RATE,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_GROOT2_PORT,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_STATE_CHANGE_LOGGER};
 
-  /**
-   * @brief Enable or disable the CommandTreeExecutor action interface.
-   * @param enable `true` to enable, `false` to disable.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & enableCommandAction(bool enable);
-
-  /**
-   * @brief Enable or disable the clear blackboard service.
-   * @param enable `true` to enable, `false` to disable.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & enableClearBlackboardService(bool enable);
-
-  /**
-   * @brief Configure whether the executor accepts scripting enum parameters.
-   * @param from_overrides `true` allows to set scripting enums from parameter overrides.
-   * @param dynamic `true` allows to dynamically set scripting enums at runtime.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & enableScriptingEnumParameters(bool from_overrides, bool dynamic);
-
-  /**
-   * @brief Configure whether the executor accepts global blackboard parameters.
-   * @param from_overrides `true` allows to set global blackboard entries from parameter overrides.
-   * @param dynamic `true` allows to dynamically set global blackboard entries at runtime.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & enableGlobalBlackboardParameters(bool from_overrides, bool dynamic);
-
-  /**
-   * @brief Specify a default behavior tree build handler.
-   * @param name Fully qualified class name of the behavior tree build handler plugin.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & setDefaultBuildHandler(const std::string & name);
-
-  /**
-   * @brief Set a custom name for the command tree executor action server.
-   * @param name Full action name.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & setCommandActionName(const std::string & name);
-
-  /**
-   * @brief Set a custom name for the clear blackboard service.
-   * @param name Full service name.
-   * @return Modified options object.
-   */
-  GenericEventBasedTreeExecutorOptions & setClearBlackboardServiceName(const std::string & name);
-
-  /**
-   * @brief Get the ROS 2 node options that comply with the given options.
-   * @return Corresponding `rclcpp::NodeOptions` object.
-   */
-  rclcpp::NodeOptions getROSNodeOptions() const;
-
-private:
-  friend class GenericEventBasedTreeExecutor;
-
-  rclcpp::NodeOptions ros_node_options_;
-  bool enable_command_action_ = true;
-  bool enable_clear_blackboard_service_ = true;
-  bool scripting_enum_parameters_from_overrides_ = false;
-  bool scripting_enum_parameters_dynamic_ = false;
-  bool blackboard_parameters_from_overrides_ = false;
-  bool blackboard_parameters_dynamic_ = false;
-  std::map<std::string, rclcpp::ParameterValue> custom_default_parameters_;
-  std::string command_action_name_;
-  std::string clear_blackboard_service_name_;
-};
+static const std::vector<std::string> TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS_WHILE_BUSY{
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_ALLOW_DYNAMIC_BLACKBOARD,
+  _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_STATE_CHANGE_LOGGER};
 
 /**
  * @ingroup auto_apms_behavior_tree
- * @brief Event-based behavior tree executor that starts execution when a trigger condition is met.
+ * @brief Event-based behavior tree executor that starts execution when the trigger method is called.
  *
  * This executor extends TreeExecutorBase with configurable support for:
  * - Build handler management (loading and switching build handlers)
@@ -124,13 +53,13 @@ private:
  * - Parameter/blackboard synchronization
  * - Scripting enum parameters
  *
- * Derived classes can start behavior tree execution by calling `startExecution()` with a build request
+ * Derived classes can trigger the behavior tree execution by calling `startExecution()` with a build request
  * or a TreeConstructor directly.
  */
 class GenericEventBasedTreeExecutor : public TreeExecutorBase
 {
 public:
-  using Options = GenericEventBasedTreeExecutorOptions;
+  using Options = TreeExecutorNodeOptions;
   using ExecutorParameters = executor_params::Params;
   using ExecutorParameterListener = executor_params::ParamListener;
   using CommandActionContext = auto_apms_util::ActionContext<auto_apms_interfaces::action::CommandTreeExecutor>;
@@ -144,9 +73,9 @@ public:
   /**
    * @brief Constructor.
    * @param name Name of the `rclcpp::Node`.
-   * @param options Event-based executor options.
+   * @param options Executor options.
    */
-  GenericEventBasedTreeExecutor(const std::string & name, GenericEventBasedTreeExecutorOptions options);
+  GenericEventBasedTreeExecutor(const std::string & name, Options options);
 
   /**
    * @brief Constructor with default options (everything disabled except build handler management).
@@ -274,7 +203,7 @@ private:
   void handle_command_accept_(std::shared_ptr<CommandActionContext::GoalHandle> goal_handle_ptr);
 
 protected:
-  const GenericEventBasedTreeExecutorOptions executor_options_;
+  const Options executor_options_;
   ExecutorParameterListener executor_param_listener_;
 
   core::NodeRegistrationLoader::SharedPtr tree_node_loader_ptr_;
