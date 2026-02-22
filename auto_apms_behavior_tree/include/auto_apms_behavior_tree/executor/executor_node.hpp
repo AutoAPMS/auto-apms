@@ -134,9 +134,6 @@ protected:
   void onGoalExecutionTermination(const ExecutionResult & result, TriggerActionContext & context) override;
 
   bool afterTick() override;
-
-private:
-  const TreeExecutorNodeOptions executor_options_;
 };
 
 }  // namespace auto_apms_behavior_tree

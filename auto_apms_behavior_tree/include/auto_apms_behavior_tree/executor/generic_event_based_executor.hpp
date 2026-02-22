@@ -103,6 +103,10 @@ private:
 
   /**
    * @brief Callback invoked before building the behavior tree.
+   *
+   * @note This hook is only used in the TreeConstructor returned by GenericEventBasedTreeExecutor::makeTreeConstructor.
+   * Remember that if you pass a custom TreeConstructor directly to TreeExecutorBase::startExecution, you bypass this
+   * hook if you don't explicitly include it.
    * @param builder Tree builder to be configured.
    * @param build_request Behavior build request.
    * @param entry_point Single point of entry for behavior execution.
@@ -115,6 +119,10 @@ private:
 
   /**
    * @brief Callback invoked after the behavior tree has been instantiated.
+   *
+   * @note This hook is only used in the TreeConstructor returned by GenericEventBasedTreeExecutor::makeTreeConstructor.
+   * Remember that if you pass a custom TreeConstructor directly to TreeExecutorBase::startExecution, you bypass this
+   * hook if you don't explicitly include it.
    * @param tree Behavior tree that has been created and is about to be executed.
    */
   virtual void postBuild(Tree & tree);
@@ -169,6 +177,8 @@ protected:
 
   /**
    * @brief Create a callback that builds a behavior tree according to a specific request.
+   *
+   *
    * @param build_request Request that specifies how to build the behavior tree.
    * @param entry_point Single point of entry for behavior execution.
    * @param node_manifest Behavior tree node manifest.
@@ -177,6 +187,12 @@ protected:
   TreeConstructor makeTreeConstructor(
     const std::string & build_request, const std::string & entry_point = "",
     const core::NodeManifest & node_manifest = {});
+
+  /**
+   * @brief Create a tree builder for building the behavior tree.
+   * @return Shared pointer to the created tree builder.
+   */
+  core::TreeBuilder::SharedPtr createTreeBuilder();
 
   /**
    * @brief Reset the global blackboard and clear all entries.

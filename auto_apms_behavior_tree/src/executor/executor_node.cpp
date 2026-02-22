@@ -29,33 +29,8 @@ TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string &
 : ActionBasedTreeExecutor<auto_apms_interfaces::action::StartTreeExecutor>(
     name,
     start_action_name.empty() ? name + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX : start_action_name,
-    options),
-  executor_options_(options)
+    options)
 {
-  // Remove all parameters from overrides that are not supported
-  rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
-  std::vector<std::string> unkown_param_names;
-  for (const std::string & param_name : res.names) {
-    if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
-    if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
-    if (auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
-    try {
-      node_ptr_->undeclare_parameter(param_name);
-    } catch (const rclcpp::exceptions::ParameterImmutableException & e) {
-      // Allow all builtin read only parameters
-      continue;
-    } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
-      // Allow all builtin statically typed parameters
-      continue;
-    }
-    unkown_param_names.push_back(param_name);
-  }
-  if (!unkown_param_names.empty()) {
-    RCLCPP_WARN(
-      logger_, "The following initial parameters are not supported and have been removed: [ %s ].",
-      auto_apms_util::join(unkown_param_names, ", ").c_str());
-  }
-
   // Make sure ROS arguments are removed. When using rclcpp_components, this is typically not the case.
   std::vector<std::string> args_with_ros_arguments = node_ptr_->get_node_options().arguments();
   int argc = args_with_ros_arguments.size();

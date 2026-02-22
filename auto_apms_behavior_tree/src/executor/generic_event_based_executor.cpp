@@ -33,6 +33,30 @@ GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(const std::string &
   executor_options_(options),
   executor_param_listener_(node_ptr_)
 {
+  // Remove all parameters from overrides that are not supported
+  rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
+  std::vector<std::string> unkown_param_names;
+  for (const std::string & param_name : res.names) {
+    if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
+    if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
+    if (auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
+    try {
+      node_ptr_->undeclare_parameter(param_name);
+    } catch (const rclcpp::exceptions::ParameterImmutableException & e) {
+      // Allow all builtin read only parameters
+      continue;
+    } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
+      // Allow all builtin statically typed parameters
+      continue;
+    }
+    unkown_param_names.push_back(param_name);
+  }
+  if (!unkown_param_names.empty()) {
+    RCLCPP_WARN(
+      logger_, "The following initial parameters are not supported and have been removed: [ %s ].",
+      auto_apms_util::join(unkown_param_names, ", ").c_str());
+  }
+
   // Set custom parameter default values.
   std::vector<rclcpp::Parameter> new_default_parameters;
   std::map<std::string, rclcpp::ParameterValue> effective_param_overrides =
@@ -302,44 +326,41 @@ TreeConstructor GenericEventBasedTreeExecutor::makeTreeConstructor(
       "' (setBuildRequest() returned false).");
   }
 
-  // Capture member references and copy value-type variables for the lambda
-  auto & builder_ptr = builder_ptr_;
-  auto & build_handler_ptr = build_handler_ptr_;
-  rclcpp::Node::SharedPtr node_ptr = node_ptr_;
-  core::NodeRegistrationLoader::SharedPtr tree_node_loader_ptr = tree_node_loader_ptr_;
-  rclcpp::CallbackGroup::SharedPtr tree_node_waitables_cb_group = getTreeNodeWaitablesCallbackGroupPtr();
-  rclcpp::executors::SingleThreadedExecutor::SharedPtr tree_node_waitables_executor = getTreeNodeWaitablesExecutorPtr();
-  std::map<std::string, int> scripting_enums = scripting_enums_;
-
-  return [&builder_ptr, &build_handler_ptr, node_ptr, tree_node_loader_ptr, tree_node_waitables_cb_group,
-          tree_node_waitables_executor, scripting_enums, build_request, entry_point, node_manifest,
-          this](TreeBlackboardSharedPtr bb_ptr) {
+  return [this, build_request, entry_point, node_manifest](TreeBlackboardSharedPtr bb_ptr) {
     // Currently, BehaviorTree.CPP requires the memory allocated by the factory to persist even after the tree has
     // been created, so we make the builder a unique pointer that is only reset when a new tree is to be created. See
     // https://github.com/BehaviorTree/BehaviorTree.CPP/issues/890
-    builder_ptr.reset(new core::TreeBuilder(
-      node_ptr, tree_node_waitables_cb_group, tree_node_waitables_executor, tree_node_loader_ptr));
+    this->builder_ptr_.reset(new core::TreeBuilder(
+      this->node_ptr_, this->getTreeNodeWaitablesCallbackGroupPtr(), this->getTreeNodeWaitablesExecutorPtr(),
+      this->tree_node_loader_ptr_));
 
     // Allow executor to make modifications prior to building the tree
-    this->preBuild(*builder_ptr, build_request, entry_point, node_manifest, *bb_ptr);
+    this->preBuild(*this->builder_ptr_, build_request, entry_point, node_manifest, *bb_ptr);
 
     // Make scripting enums available to tree instance
-    for (const auto & [enum_key, val] : scripting_enums) builder_ptr->setScriptingEnum(enum_key, val);
+    for (const auto & [enum_key, val] : this->scripting_enums_) this->builder_ptr_->setScriptingEnum(enum_key, val);
 
     // If a build handler is specified, let it configure the builder and determine which tree is to be instantiated
     std::string instantiate_name = "";
-    if (build_handler_ptr) {
-      instantiate_name = build_handler_ptr->buildTree(*builder_ptr, *bb_ptr).getName();
+    if (this->build_handler_ptr_) {
+      instantiate_name = this->build_handler_ptr_->buildTree(*this->builder_ptr_, *bb_ptr).getName();
     }
 
     // Finally, instantiate the tree
-    Tree tree =
-      instantiate_name.empty() ? builder_ptr->instantiate(bb_ptr) : builder_ptr->instantiate(instantiate_name, bb_ptr);
+    Tree tree = instantiate_name.empty() ? this->builder_ptr_->instantiate(bb_ptr)
+                                         : this->builder_ptr_->instantiate(instantiate_name, bb_ptr);
 
     // Allow executor to make modifications after building the tree, but before execution starts
     this->postBuild(tree);
     return tree;
   };
+}
+
+core::TreeBuilder::SharedPtr GenericEventBasedTreeExecutor::createTreeBuilder()
+{
+  return core::TreeBuilder::make_shared(
+    this->node_ptr_, this->getTreeNodeWaitablesCallbackGroupPtr(), this->getTreeNodeWaitablesExecutorPtr(),
+    this->tree_node_loader_ptr_);
 }
 
 bool GenericEventBasedTreeExecutor::clearGlobalBlackboard()
