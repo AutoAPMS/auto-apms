@@ -84,7 +84,7 @@ int main(int argc, char ** argv)
           node_manifest.add(registration_name, native_node_options);
           package_for_class[node_manifest[registration_name].class_name] = native_package_name;
         } else {
-          throw std::runtime_error("Package for node '" + registration_name + "' is unkown.");
+          throw std::runtime_error("Package for node '" + registration_name + "' is unknown.");
         }
       }
     }

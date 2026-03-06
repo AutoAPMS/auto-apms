@@ -124,7 +124,7 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertNode(
 {
   if (const std::set<std::string> names = doc_ptr_->getRegisteredNodeNames(true); names.find(name) == names.end()) {
     throw exceptions::TreeDocumentError(
-      "Cannot insert unkown node <" + name +
+      "Cannot insert unknown node <" + name +
       ">. Before inserting a new node, the associated document must register the corresponding behavior tree "
       "node. Consider using a signature of insertNode() that does this automatically.");
   }
@@ -255,7 +255,7 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromDocument(
       for (const NodeElement & ele : found) names.push_back(ele.getFullyQualifiedName());
       throw exceptions::TreeDocumentError(
         "Cannot insert tree '" + tree_name + "' because the following nodes found in tree '" + name +
-        "' are unkown to the builder:\n\t- " + auto_apms_util::join(names, "\n\t- "));
+        "' are unknown to the builder:\n\t- " + auto_apms_util::join(names, "\n\t- "));
     }
   }
 
@@ -390,14 +390,14 @@ TreeDocument::NodeElement::PortValues TreeDocument::NodeElement::getPorts() cons
 TreeDocument::NodeElement & TreeDocument::NodeElement::setPorts(const PortValues & port_values)
 {
   // Verify port_values
-  std::vector<std::string> unkown_keys;
+  std::vector<std::string> unknown_keys;
   for (const auto & [key, _] : port_values) {
-    if (!auto_apms_util::contains(port_names_, key)) unkown_keys.push_back(key);
+    if (!auto_apms_util::contains(port_names_, key)) unknown_keys.push_back(key);
   }
-  if (!unkown_keys.empty()) {
+  if (!unknown_keys.empty()) {
     throw exceptions::TreeDocumentError(
       "Cannot set ports. According to the node model, the following ports are not implemented by '" +
-      std::string(ele_ptr_->Name()) + "': [ " + auto_apms_util::join(unkown_keys, ", ") + " ].");
+      std::string(ele_ptr_->Name()) + "': [ " + auto_apms_util::join(unknown_keys, ", ") + " ].");
   }
 
   // Populate attributes according to the content of port_values
@@ -610,7 +610,7 @@ TreeDocument::TreeElement & TreeDocument::TreeElement::setName(const std::string
 std::string TreeDocument::TreeElement::getName() const
 {
   if (const char * name = ele_ptr_->Attribute(TREE_NAME_ATTRIBUTE_NAME)) return name;
-  return "unkown";
+  return "unknown";
 }
 
 TreeDocument::TreeElement & TreeDocument::TreeElement::makeRoot()
@@ -1305,7 +1305,7 @@ NodeModelMap TreeDocument::getNodeModel(tinyxml2::XMLDocument & doc, const NodeM
         port_info.port_direction = BT::PortDirection::INOUT;
       } else {
         throw exceptions::TreeDocumentError(
-          "Unkown port direction in node model for '" + std::string(node_name) + "': " + direction);
+          "Unknown port direction in node model for '" + std::string(node_name) + "': " + direction);
       }
       if (const char * c = port_ele->Attribute("name")) {
         port_info.port_name = c;

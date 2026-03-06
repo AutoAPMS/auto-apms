@@ -56,7 +56,7 @@
                             level="WARN"/>
                   </ForceSuccess>
                 </Sequence>
-                <Error name="UnkownEventID"
+                <Error name="UnknownEventID"
                        message=""/>
               </Fallback>
             </Sequence>

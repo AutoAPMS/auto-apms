@@ -428,7 +428,7 @@ rcl_interfaces::msg::SetParametersResult GenericTreeExecutorNode::on_set_paramet
 
     // Check if parameter is known
     if (!auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) {
-      return create_rejected("Parameter is unkown");
+      return create_rejected("Parameter is unknown");
     }
 
     // Check if the parameter is allowed to change during execution
@@ -575,7 +575,7 @@ void GenericTreeExecutorNode::handle_command_accept_(std::shared_ptr<CommandActi
       requested_state = ExecutionState::IDLE;
       break;
     default:
-      throw std::logic_error("command_request is unkown");
+      throw std::logic_error("command_request is unknown");
   }
 
   command_timer_ptr_ = node_ptr_->create_wall_timer(

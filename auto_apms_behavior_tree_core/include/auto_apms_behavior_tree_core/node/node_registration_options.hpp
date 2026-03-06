@@ -270,8 +270,8 @@ struct convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>
         continue;
       }
 
-      // Unkown parameter
-      throw auto_apms_util::exceptions::YAMLFormatError("Unkown parameter name '" + key + "'.");
+      // Unknown parameter
+      throw auto_apms_util::exceptions::YAMLFormatError("Unknown parameter name '" + key + "'.");
     }
     return true;
   }

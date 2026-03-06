@@ -366,7 +366,7 @@ template <class MessageT>
 inline std::string RosSubscriberNode<MessageT>::getTopicName() const
 {
   if (sub_instance_) return sub_instance_->name;
-  return "unkown";
+  return "unknown";
 }
 
 template <class MessageT>

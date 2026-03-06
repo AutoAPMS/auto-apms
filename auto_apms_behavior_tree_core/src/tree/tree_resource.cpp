@@ -127,7 +127,7 @@ std::string TreeResource::getRootTreeName() const
   throw auto_apms_util::exceptions::ResourceError(
     "Cannot get root tree name of tree resource '" + unique_identity_.str() +
     "'. Since there is no XML attribute named '" + TreeDocument::ROOT_TREE_ATTRIBUTE_NAME +
-    "' and the resource identity doesn't specify <tree_name>, the root tree is unkown.");
+    "' and the resource identity doesn't specify <tree_name>, the root tree is unknown.");
 }
 
 TreeResourceIdentity TreeResource::createIdentityForTree(const std::string & tree_name) const

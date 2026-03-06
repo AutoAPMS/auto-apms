@@ -176,7 +176,7 @@ void TreeExecutorNode::onGoalExecutionTermination(const ExecutionResult & result
       break;
     default:
       result_ptr->tree_result = TriggerResult::TREE_RESULT_NOT_SET;
-      result_ptr->message = "Execution result unkown";
+      result_ptr->message = "Execution result unknown";
       context.abort();
       break;
   }
