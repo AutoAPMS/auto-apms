@@ -20,7 +20,7 @@ namespace auto_apms_behavior_tree
 {
 
 /**
- * @brief Configuration options for GenericEventBasedTreeExecutor.
+ * @brief Configuration options for GenericTreeExecutorNode.
  *
  * This allows configuring which features of the behavior tree executor are enabled, such as the command action
  * interface, parameter/blackboard synchronization, and scripting enum support.
@@ -96,7 +96,7 @@ public:
   rclcpp::NodeOptions getROSNodeOptions() const;
 
 private:
-  friend class GenericEventBasedTreeExecutor;
+  friend class GenericTreeExecutorNode;
 
   rclcpp::NodeOptions ros_node_options_;
   bool enable_command_action_ = true;

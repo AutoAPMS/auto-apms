@@ -26,7 +26,7 @@ namespace auto_apms_behavior_tree
 {
 
 TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string & start_action_name, Options options)
-: ActionBasedTreeExecutor<auto_apms_interfaces::action::StartTreeExecutor>(
+: ActionBasedTreeExecutorNode<auto_apms_interfaces::action::StartTreeExecutor>(
     name,
     start_action_name.empty() ? name + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX : start_action_name,
     options)
@@ -120,7 +120,7 @@ void TreeExecutorNode::onExecutionStarted(std::shared_ptr<TriggerGoalHandle> goa
 bool TreeExecutorNode::afterTick()
 {
   // Call parent's afterTick for blackboard synchronization etc.
-  if (!GenericEventBasedTreeExecutor::afterTick()) return false;
+  if (!GenericTreeExecutorNode::afterTick()) return false;
 
   // Send feedback (only in attached mode)
   if (trigger_action_context_.isValid()) {

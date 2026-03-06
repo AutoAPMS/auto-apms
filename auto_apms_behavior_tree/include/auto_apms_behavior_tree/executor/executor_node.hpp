@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "auto_apms_behavior_tree/executor/action_based_executor.hpp"
+#include "auto_apms_behavior_tree/executor/action_based_executor_node.hpp"
 #include "auto_apms_interfaces/action/start_tree_executor.hpp"
 
 namespace auto_apms_behavior_tree
@@ -24,8 +24,9 @@ namespace auto_apms_behavior_tree
  * @ingroup auto_apms_behavior_tree
  * @brief Flexible ROS 2 node implementing a standardized interface for dynamically executing behavior trees.
  *
- * This class extends GenericEventBasedTreeExecutor with a StartTreeExecutor action server that allows external
- * clients to trigger behavior tree execution via an action goal. The executor is configured using ROS 2 parameters.
+ * This class uses the ActionBasedTreeExecutorNode template with the builtin StartTreeExecutor action type that allows
+ * external clients to trigger behavior tree execution via a flexible and standardized interface. The executor is
+ * configured using ROS 2 parameters.
  *
  * A behavior tree can be executed via command line:
  *
@@ -54,7 +55,7 @@ namespace auto_apms_behavior_tree
  *
  * - `auto_apms_behavior_tree::OnlyInitialBlackboardParamsExecutorNode`
  */
-class TreeExecutorNode : public ActionBasedTreeExecutor<auto_apms_interfaces::action::StartTreeExecutor>
+class TreeExecutorNode : public ActionBasedTreeExecutorNode<auto_apms_interfaces::action::StartTreeExecutor>
 {
 public:
   /**
@@ -83,7 +84,7 @@ public:
   virtual ~TreeExecutorNode() override = default;
 
 protected:
-  /* ActionBasedTreeExecutor overrides */
+  /* ActionBasedTreeExecutorNode overrides */
 
   /**
    * @brief Create a TreeConstructor from a StartTreeExecutor action goal.

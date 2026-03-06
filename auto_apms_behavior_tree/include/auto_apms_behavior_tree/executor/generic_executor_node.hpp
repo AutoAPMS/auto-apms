@@ -45,7 +45,7 @@ static const std::vector<std::string> TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETER
 
 /**
  * @ingroup auto_apms_behavior_tree
- * @brief Event-based behavior tree executor that starts execution when the trigger method is called.
+ * @brief Flexible and configurable ROS 2 behavior tree executor node.
  *
  * This executor extends TreeExecutorBase with configurable support for:
  * - Build handler management (loading and switching build handlers)
@@ -53,10 +53,10 @@ static const std::vector<std::string> TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETER
  * - Parameter/blackboard synchronization
  * - Scripting enum parameters
  *
- * Derived classes can trigger the behavior tree execution by calling `startExecution()` with a build request
- * or a TreeConstructor directly.
+ * Derived classes can trigger the behavior tree execution by calling GenericTreeExecutorNode::startExecution with a
+ * build request or a TreeConstructor directly.
  */
-class GenericEventBasedTreeExecutor : public TreeExecutorBase
+class GenericTreeExecutorNode : public TreeExecutorBase
 {
 public:
   using Options = TreeExecutorNodeOptions;
@@ -75,15 +75,15 @@ public:
    * @param name Name of the `rclcpp::Node`.
    * @param options Executor options.
    */
-  GenericEventBasedTreeExecutor(const std::string & name, Options options);
+  GenericTreeExecutorNode(const std::string & name, Options options);
 
   /**
    * @brief Constructor with default options (everything disabled except build handler management).
    * @param options ROS 2 node options.
    */
-  explicit GenericEventBasedTreeExecutor(rclcpp::NodeOptions options);
+  explicit GenericTreeExecutorNode(rclcpp::NodeOptions options);
 
-  virtual ~GenericEventBasedTreeExecutor() override = default;
+  virtual ~GenericTreeExecutorNode() override = default;
 
   using TreeExecutorBase::startExecution;
 
@@ -104,7 +104,7 @@ private:
   /**
    * @brief Callback invoked before building the behavior tree.
    *
-   * @note This hook is only used in the TreeConstructor returned by GenericEventBasedTreeExecutor::makeTreeConstructor.
+   * @note This hook is only used in the TreeConstructor returned by GenericTreeExecutorNode::makeTreeConstructor.
    * Remember that if you pass a custom TreeConstructor directly to TreeExecutorBase::startExecution, you bypass this
    * hook if you don't explicitly include it.
    * @param builder Tree builder to be configured.
@@ -120,7 +120,7 @@ private:
   /**
    * @brief Callback invoked after the behavior tree has been instantiated.
    *
-   * @note This hook is only used in the TreeConstructor returned by GenericEventBasedTreeExecutor::makeTreeConstructor.
+   * @note This hook is only used in the TreeConstructor returned by GenericTreeExecutorNode::makeTreeConstructor.
    * Remember that if you pass a custom TreeConstructor directly to TreeExecutorBase::startExecution, you bypass this
    * hook if you don't explicitly include it.
    * @param tree Behavior tree that has been created and is about to be executed.

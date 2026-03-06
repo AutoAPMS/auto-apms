@@ -14,7 +14,7 @@
 
 #pragma once
 
-#include "auto_apms_behavior_tree/executor/generic_event_based_executor.hpp"
+#include "auto_apms_behavior_tree/executor/generic_executor_node.hpp"
 #include "auto_apms_util/action_context.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
@@ -23,9 +23,9 @@ namespace auto_apms_behavior_tree
 
 /**
  * @ingroup auto_apms_behavior_tree
- * @brief Template class for executing behavior trees triggered by a custom ROS 2 action goal.
+ * @brief ROS 2 node template for executing behavior trees triggered by a custom ROS 2 action goal.
  *
- * This class extends GenericEventBasedTreeExecutor to trigger behavior tree execution when an action goal of the
+ * This class extends GenericTreeExecutorNode to trigger behavior tree execution when an action goal of the
  * specified type @p ActionT is received. It creates an action server and manages the lifecycle of the action goal
  * in coordination with the behavior tree execution.
  *
@@ -41,7 +41,7 @@ namespace auto_apms_behavior_tree
  * @tparam ActionT The ROS 2 action type that triggers the behavior tree execution.
  */
 template <typename ActionT>
-class ActionBasedTreeExecutor : public GenericEventBasedTreeExecutor
+class ActionBasedTreeExecutorNode : public GenericTreeExecutorNode
 {
 public:
   using TriggerActionContext = auto_apms_util::ActionContext<ActionT>;
@@ -56,7 +56,7 @@ public:
    * @param action_name Name for the trigger action server.
    * @param options Executor options.
    */
-  ActionBasedTreeExecutor(const std::string & name, const std::string & action_name, Options options);
+  ActionBasedTreeExecutorNode(const std::string & name, const std::string & action_name, Options options);
 
   /**
    * @brief Constructor with default options.
@@ -64,10 +64,10 @@ public:
    * @param action_name Name for the trigger action server.
    * @param ros_options ROS 2 node options.
    */
-  ActionBasedTreeExecutor(
+  ActionBasedTreeExecutorNode(
     const std::string & name, const std::string & action_name, rclcpp::NodeOptions ros_options = rclcpp::NodeOptions());
 
-  virtual ~ActionBasedTreeExecutor() override = default;
+  virtual ~ActionBasedTreeExecutorNode() override = default;
 
 protected:
   /* Virtual methods to implement/override */
@@ -139,26 +139,26 @@ private:
 // #####################################################################################################################
 
 template <typename ActionT>
-ActionBasedTreeExecutor<ActionT>::ActionBasedTreeExecutor(
+ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
   const std::string & name, const std::string & action_name, Options options)
-: GenericEventBasedTreeExecutor(name, options), trigger_action_context_(logger_)
+: GenericTreeExecutorNode(name, options), trigger_action_context_(logger_)
 {
   using namespace std::placeholders;
   trigger_action_ptr_ = rclcpp_action::create_server<ActionT>(
-    node_ptr_, action_name, std::bind(&ActionBasedTreeExecutor::handle_trigger_goal_, this, _1, _2),
-    std::bind(&ActionBasedTreeExecutor::handle_trigger_cancel_, this, _1),
-    std::bind(&ActionBasedTreeExecutor::handle_trigger_accept_, this, _1));
+    node_ptr_, action_name, std::bind(&ActionBasedTreeExecutorNode::handle_trigger_goal_, this, _1, _2),
+    std::bind(&ActionBasedTreeExecutorNode::handle_trigger_cancel_, this, _1),
+    std::bind(&ActionBasedTreeExecutorNode::handle_trigger_accept_, this, _1));
 }
 
 template <typename ActionT>
-ActionBasedTreeExecutor<ActionT>::ActionBasedTreeExecutor(
+ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
   const std::string & name, const std::string & action_name, rclcpp::NodeOptions ros_options)
-: ActionBasedTreeExecutor(name, action_name, Options(ros_options))
+: ActionBasedTreeExecutorNode(name, action_name, Options(ros_options))
 {
 }
 
 template <typename ActionT>
-bool ActionBasedTreeExecutor<ActionT>::shouldAcceptGoal(
+bool ActionBasedTreeExecutorNode<ActionT>::shouldAcceptGoal(
   const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const TriggerGoal> /*goal_ptr*/)
 {
   if (isBusy()) {
@@ -171,19 +171,19 @@ bool ActionBasedTreeExecutor<ActionT>::shouldAcceptGoal(
 }
 
 template <typename ActionT>
-void ActionBasedTreeExecutor<ActionT>::onAcceptedGoal(std::shared_ptr<TriggerGoalHandle> /*goal_handle_ptr*/)
+void ActionBasedTreeExecutorNode<ActionT>::onAcceptedGoal(std::shared_ptr<TriggerGoalHandle> /*goal_handle_ptr*/)
 {
 }
 
 template <typename ActionT>
-void ActionBasedTreeExecutor<ActionT>::onExecutionStarted(std::shared_ptr<TriggerGoalHandle> goal_handle_ptr)
+void ActionBasedTreeExecutorNode<ActionT>::onExecutionStarted(std::shared_ptr<TriggerGoalHandle> goal_handle_ptr)
 {
   trigger_action_context_.setUp(goal_handle_ptr);
   RCLCPP_INFO(logger_, "Successfully started execution of tree '%s' via action trigger.", getTreeName().c_str());
 }
 
 template <typename ActionT>
-void ActionBasedTreeExecutor<ActionT>::onGoalExecutionTermination(
+void ActionBasedTreeExecutorNode<ActionT>::onGoalExecutionTermination(
   const ExecutionResult & result, TriggerActionContext & context)
 {
   switch (result) {
@@ -208,7 +208,7 @@ void ActionBasedTreeExecutor<ActionT>::onGoalExecutionTermination(
 }
 
 template <typename ActionT>
-void ActionBasedTreeExecutor<ActionT>::onTermination(const ExecutionResult & result)
+void ActionBasedTreeExecutorNode<ActionT>::onTermination(const ExecutionResult & result)
 {
   if (trigger_action_context_.isValid()) {
     onGoalExecutionTermination(result, trigger_action_context_);
@@ -217,7 +217,7 @@ void ActionBasedTreeExecutor<ActionT>::onTermination(const ExecutionResult & res
 }
 
 template <typename ActionT>
-rclcpp_action::GoalResponse ActionBasedTreeExecutor<ActionT>::handle_trigger_goal_(
+rclcpp_action::GoalResponse ActionBasedTreeExecutorNode<ActionT>::handle_trigger_goal_(
   const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const TriggerGoal> goal_ptr)
 {
   if (!shouldAcceptGoal(uuid, goal_ptr)) {
@@ -236,7 +236,7 @@ rclcpp_action::GoalResponse ActionBasedTreeExecutor<ActionT>::handle_trigger_goa
 }
 
 template <typename ActionT>
-rclcpp_action::CancelResponse ActionBasedTreeExecutor<ActionT>::handle_trigger_cancel_(
+rclcpp_action::CancelResponse ActionBasedTreeExecutorNode<ActionT>::handle_trigger_cancel_(
   std::shared_ptr<TriggerGoalHandle> /*goal_handle_ptr*/)
 {
   setControlCommand(ControlCommand::TERMINATE);
@@ -244,7 +244,7 @@ rclcpp_action::CancelResponse ActionBasedTreeExecutor<ActionT>::handle_trigger_c
 }
 
 template <typename ActionT>
-void ActionBasedTreeExecutor<ActionT>::handle_trigger_accept_(std::shared_ptr<TriggerGoalHandle> goal_handle_ptr)
+void ActionBasedTreeExecutorNode<ActionT>::handle_trigger_accept_(std::shared_ptr<TriggerGoalHandle> goal_handle_ptr)
 {
   onAcceptedGoal(goal_handle_ptr);
 

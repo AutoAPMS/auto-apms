@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auto_apms_behavior_tree/executor/generic_event_based_executor.hpp"
+#include "auto_apms_behavior_tree/executor/generic_executor_node.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -28,7 +28,7 @@
 namespace auto_apms_behavior_tree
 {
 
-GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(const std::string & name, Options options)
+GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Options options)
 : TreeExecutorBase(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions())),
   executor_options_(options),
   executor_param_listener_(node_ptr_)
@@ -131,9 +131,9 @@ GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(const std::string &
   // Command action server (optional)
   if (executor_options_.enable_command_action_) {
     command_action_ptr_ = rclcpp_action::create_server<CommandActionContext::Type>(
-      node_ptr_, command_action_name, std::bind(&GenericEventBasedTreeExecutor::handle_command_goal_, this, _1, _2),
-      std::bind(&GenericEventBasedTreeExecutor::handle_command_cancel_, this, _1),
-      std::bind(&GenericEventBasedTreeExecutor::handle_command_accept_, this, _1));
+      node_ptr_, command_action_name, std::bind(&GenericTreeExecutorNode::handle_command_goal_, this, _1, _2),
+      std::bind(&GenericTreeExecutorNode::handle_command_cancel_, this, _1),
+      std::bind(&GenericTreeExecutorNode::handle_command_accept_, this, _1));
   }
 
   // Clear blackboard service (optional)
@@ -169,20 +169,20 @@ GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(const std::string &
   }
 }
 
-GenericEventBasedTreeExecutor::GenericEventBasedTreeExecutor(rclcpp::NodeOptions options)
-: GenericEventBasedTreeExecutor("event_based_tree_executor", Options(options))
+GenericTreeExecutorNode::GenericTreeExecutorNode(rclcpp::NodeOptions options)
+: GenericTreeExecutorNode("event_based_tree_executor", Options(options))
 {
 }
 
-void GenericEventBasedTreeExecutor::preBuild(
+void GenericTreeExecutorNode::preBuild(
   core::TreeBuilder & /*builder*/, const std::string & /*build_request*/, const std::string & /*entry_point*/,
   const core::NodeManifest & /*node_manifest*/, TreeBlackboard & /*bb*/)
 {
 }
 
-void GenericEventBasedTreeExecutor::postBuild(Tree & /*tree*/) {}
+void GenericTreeExecutorNode::postBuild(Tree & /*tree*/) {}
 
-std::shared_future<GenericEventBasedTreeExecutor::ExecutionResult> GenericEventBasedTreeExecutor::startExecution(
+std::shared_future<GenericTreeExecutorNode::ExecutionResult> GenericTreeExecutorNode::startExecution(
   const std::string & build_request, const std::string & entry_point, const core::NodeManifest & node_manifest)
 {
   const ExecutorParameters params = executor_param_listener_.get_params();
@@ -190,12 +190,12 @@ std::shared_future<GenericEventBasedTreeExecutor::ExecutionResult> GenericEventB
     makeTreeConstructor(build_request, entry_point, node_manifest), params.tick_rate, params.groot2_port);
 }
 
-GenericEventBasedTreeExecutor::ExecutorParameters GenericEventBasedTreeExecutor::getExecutorParameters() const
+GenericTreeExecutorNode::ExecutorParameters GenericTreeExecutorNode::getExecutorParameters() const
 {
   return executor_param_listener_.get_params();
 }
 
-std::map<std::string, rclcpp::ParameterValue> GenericEventBasedTreeExecutor::getParameterValuesWithPrefix(
+std::map<std::string, rclcpp::ParameterValue> GenericTreeExecutorNode::getParameterValuesWithPrefix(
   const std::string & prefix)
 {
   const auto res = node_ptr_->list_parameters({prefix}, 2);
@@ -208,7 +208,7 @@ std::map<std::string, rclcpp::ParameterValue> GenericEventBasedTreeExecutor::get
   return value_map;
 }
 
-std::string GenericEventBasedTreeExecutor::stripPrefixFromParameterName(
+std::string GenericTreeExecutorNode::stripPrefixFromParameterName(
   const std::string & prefix, const std::string & param_name)
 {
   const std::regex reg("^" + prefix + "\\.(\\S+)");
@@ -216,7 +216,7 @@ std::string GenericEventBasedTreeExecutor::stripPrefixFromParameterName(
   return "";
 }
 
-bool GenericEventBasedTreeExecutor::updateScriptingEnumsWithParameterValues(
+bool GenericTreeExecutorNode::updateScriptingEnumsWithParameterValues(
   const std::map<std::string, rclcpp::ParameterValue> & value_map, bool simulate)
 {
   std::map<std::string, std::string> set_successfully_map;
@@ -251,7 +251,7 @@ bool GenericEventBasedTreeExecutor::updateScriptingEnumsWithParameterValues(
   return true;
 }
 
-bool GenericEventBasedTreeExecutor::updateGlobalBlackboardWithParameterValues(
+bool GenericTreeExecutorNode::updateGlobalBlackboardWithParameterValues(
   const std::map<std::string, rclcpp::ParameterValue> & value_map, bool simulate)
 {
   TreeBlackboard & bb = *getGlobalBlackboardPtr();
@@ -287,7 +287,7 @@ bool GenericEventBasedTreeExecutor::updateGlobalBlackboardWithParameterValues(
   return true;
 }
 
-void GenericEventBasedTreeExecutor::loadBuildHandler(const std::string & name)
+void GenericTreeExecutorNode::loadBuildHandler(const std::string & name)
 {
   if (build_handler_ptr_ && !executor_param_listener_.get_params().allow_other_build_handlers) {
     throw std::logic_error(
@@ -316,7 +316,7 @@ void GenericEventBasedTreeExecutor::loadBuildHandler(const std::string & name)
   current_build_handler_name_ = name;
 }
 
-TreeConstructor GenericEventBasedTreeExecutor::makeTreeConstructor(
+TreeConstructor GenericTreeExecutorNode::makeTreeConstructor(
   const std::string & build_request, const std::string & entry_point, const core::NodeManifest & node_manifest)
 {
   // Request the tree identity
@@ -356,14 +356,14 @@ TreeConstructor GenericEventBasedTreeExecutor::makeTreeConstructor(
   };
 }
 
-core::TreeBuilder::SharedPtr GenericEventBasedTreeExecutor::createTreeBuilder()
+core::TreeBuilder::SharedPtr GenericTreeExecutorNode::createTreeBuilder()
 {
   return core::TreeBuilder::make_shared(
     this->node_ptr_, this->getTreeNodeWaitablesCallbackGroupPtr(), this->getTreeNodeWaitablesExecutorPtr(),
     this->tree_node_loader_ptr_);
 }
 
-bool GenericEventBasedTreeExecutor::clearGlobalBlackboard()
+bool GenericTreeExecutorNode::clearGlobalBlackboard()
 {
   if (TreeExecutorBase::clearGlobalBlackboard()) {
     if (executor_options_.blackboard_parameters_from_overrides_ || executor_options_.blackboard_parameters_dynamic_) {
@@ -377,7 +377,7 @@ bool GenericEventBasedTreeExecutor::clearGlobalBlackboard()
   return false;
 }
 
-rcl_interfaces::msg::SetParametersResult GenericEventBasedTreeExecutor::on_set_parameters_callback_(
+rcl_interfaces::msg::SetParametersResult GenericTreeExecutorNode::on_set_parameters_callback_(
   const std::vector<rclcpp::Parameter> & parameters)
 {
   const ExecutorParameters params = executor_param_listener_.get_params();
@@ -467,7 +467,7 @@ rcl_interfaces::msg::SetParametersResult GenericEventBasedTreeExecutor::on_set_p
   return result;
 }
 
-void GenericEventBasedTreeExecutor::parameter_event_callback_(const rcl_interfaces::msg::ParameterEvent & event)
+void GenericTreeExecutorNode::parameter_event_callback_(const rcl_interfaces::msg::ParameterEvent & event)
 {
   std::regex re(node_ptr_->get_fully_qualified_name());
   if (std::regex_match(event.node, re)) {
@@ -491,7 +491,7 @@ void GenericEventBasedTreeExecutor::parameter_event_callback_(const rcl_interfac
   }
 }
 
-rclcpp_action::GoalResponse GenericEventBasedTreeExecutor::handle_command_goal_(
+rclcpp_action::GoalResponse GenericTreeExecutorNode::handle_command_goal_(
   const rclcpp_action::GoalUUID & /*uuid*/, std::shared_ptr<const CommandActionContext::Goal> goal_ptr)
 {
   if (command_timer_ptr_ && !command_timer_ptr_->is_canceled()) {
@@ -547,13 +547,13 @@ rclcpp_action::GoalResponse GenericEventBasedTreeExecutor::handle_command_goal_(
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-rclcpp_action::CancelResponse GenericEventBasedTreeExecutor::handle_command_cancel_(
+rclcpp_action::CancelResponse GenericTreeExecutorNode::handle_command_cancel_(
   std::shared_ptr<CommandActionContext::GoalHandle> /*goal_handle_ptr*/)
 {
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void GenericEventBasedTreeExecutor::handle_command_accept_(
+void GenericTreeExecutorNode::handle_command_accept_(
   std::shared_ptr<CommandActionContext::GoalHandle> goal_handle_ptr)
 {
   const auto command_request = goal_handle_ptr->get_goal()->command;
@@ -606,14 +606,14 @@ void GenericEventBasedTreeExecutor::handle_command_accept_(
     });
 }
 
-bool GenericEventBasedTreeExecutor::onTick()
+bool GenericTreeExecutorNode::onTick()
 {
   const ExecutorParameters params = executor_param_listener_.get_params();
   getStateObserver().setLogging(params.state_change_logger);
   return true;
 }
 
-bool GenericEventBasedTreeExecutor::afterTick()
+bool GenericTreeExecutorNode::afterTick()
 {
   const ExecutorParameters params = executor_param_listener_.get_params();
 

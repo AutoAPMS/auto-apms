@@ -93,7 +93,7 @@ add_library(${PROJECT_NAME} SHARED
   "src/executor/options.cpp"
   "src/executor/state_observer.cpp"
   "src/executor/executor_base.cpp"
-  "src/executor/generic_event_based_executor.cpp"
+  "src/executor/generic_executor_node.cpp"
   "src/executor/executor_node.cpp"
   "src/util/parameter.cpp"
   "src/util/node.cpp"
