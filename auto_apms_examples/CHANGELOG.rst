@@ -2,8 +2,8 @@
 Changelog for package auto_apms_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.5.0 (2026-03-06)
+------------------
 * fix: introduce namespaced shared library names to avoid name clashes in merged installs
 * Merge for integrating small convencience test scripts for manual use
 * Contributors: Robin Müller
