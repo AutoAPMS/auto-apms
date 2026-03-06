@@ -435,7 +435,7 @@ TreeConstructor TreeExecutorNode::makeTreeConstructor(
     // Currently, BehaviorTree.CPP requires the memory allocated by the factory to persist even after the tree has
     // been created, so we make the builder a unique pointer that is only reset when a new tree is to be created. See
     // https://github.com/BehaviorTree/BehaviorTree.CPP/issues/890
-    builder_ptr_.reset(new TreeBuilder(
+    builder_ptr_.reset(new core::TreeBuilder(
       node_ptr_, getTreeNodeWaitablesCallbackGroupPtr(), getTreeNodeWaitablesExecutorPtr(), tree_node_loader_ptr_));
 
     // Allow executor to make modifications prior to building the tree

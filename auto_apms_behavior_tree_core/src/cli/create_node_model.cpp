@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 
 #include "auto_apms_behavior_tree_core/node/node_manifest.hpp"
 #include "auto_apms_behavior_tree_core/node/node_registration_interface.hpp"
@@ -29,18 +30,31 @@ using namespace auto_apms_behavior_tree;
 
 int main(int argc, char ** argv)
 {
-  if (argc < 4) {
+  if (argc < 5) {
     std::cerr << "create_node_model: Missing inputs! The program requires: \n\t1.) The path to the node plugin "
                  "manifest.\n\t2. The exhaustive list of libraries to be loaded by ClassLoader (Separated by "
-                 "';').\n\t3.) The xml file to store the model.\n";
-    std::cerr << "Usage: create_node_model <manifest_file> <library_paths> <output_file>.\n";
+                 "';').\n\t3.) Registration type mappings (Separated by ';', format: "
+                 "'class_name=registration_type').\n\t4.) The xml file to store the model.\n";
+    std::cerr << "Usage: create_node_model <manifest_file> <library_paths> <registration_types> <output_file>.\n";
     return EXIT_FAILURE;
   }
 
   try {
     const std::filesystem::path manifest_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[1]));
     const std::vector<std::string> library_paths = auto_apms_util::splitString(argv[2], ";", true);
-    const std::filesystem::path output_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[3]));
+    const std::vector<std::string> registration_type_entries = auto_apms_util::splitString(argv[3], ";", true);
+    const std::filesystem::path output_file = std::filesystem::absolute(auto_apms_util::trimWhitespaces(argv[4]));
+
+    // Build class_name -> registration_type mapping
+    std::map<std::string, std::string> registration_type_map;
+    for (const auto & entry : registration_type_entries) {
+      const auto eq_pos = entry.find('=');
+      if (eq_pos == std::string::npos) {
+        throw std::runtime_error(
+          "Invalid registration type entry '" + entry + "'. Expected format: 'class_name=registration_type'.");
+      }
+      registration_type_map[entry.substr(0, eq_pos)] = entry.substr(eq_pos + 1);
+    }
 
     if (!std::filesystem::exists(manifest_file)) {
       throw std::runtime_error("File manifest_file must exist.");
@@ -80,12 +94,18 @@ int main(int argc, char ** argv)
 
     // Walk manifest and register all plugins with BT::BehaviorTreeFactory
     for (const auto & [node_name, params] : manifest.map()) {
-      const std::string required_class_name =
-        "auto_apms_behavior_tree::core::NodeRegistrationTemplate<" + params.class_name + ">";
+      // Look up the registration type from the mapping provided by create_node_manifest
+      const auto reg_type_it = registration_type_map.find(params.class_name);
+      if (reg_type_it == registration_type_map.end()) {
+        throw std::runtime_error(
+          "Node '" + node_name + "' (Class: " + params.class_name +
+          ") has no registration type mapping. Please rebuild the package.");
+      }
+      const std::string & registration_type = reg_type_it->second;
 
       class_loader::ClassLoader * loader = nullptr;
       for (const auto & l : class_loaders) {
-        if (l->isClassAvailable<core::NodeRegistrationInterface>(required_class_name)) {
+        if (l->isClassAvailable<core::NodeRegistrationInterface>(registration_type)) {
           loader = l.get();
         }
       }
@@ -93,11 +113,11 @@ int main(int argc, char ** argv)
       if (!loader) {
         throw std::runtime_error(
           "Node '" + node_name + "' (Class: " + params.class_name +
-          ") cannot be registered, because the required registration class '" + required_class_name +
-          "' couldn't be found. Check that the class name is spelled correctly and "
+          ") cannot be registered, because the registration class '" + registration_type +
+          "' could not be found in any loaded library. Check that the class name is spelled correctly and "
           "the node is registered by calling auto_apms_behavior_tree_register_nodes() in the CMakeLists.txt of the "
           "corresponding package. Also make sure that you called the "
-          "AUTO_APMS_BEHAVIOR_TREE_REGISTER_NODE macro in the source file.");
+          "AUTO_APMS_BEHAVIOR_TREE_REGISTER_NODE macro or PLUGINLIB_EXPORT_CLASS in the source file.");
       }
 
       RCLCPP_DEBUG(
@@ -105,7 +125,7 @@ int main(int argc, char ** argv)
         params.class_name.c_str(), loader->getLibraryPath().c_str());
 
       try {
-        const auto plugin_instance = loader->createUniqueInstance<core::NodeRegistrationInterface>(required_class_name);
+        const auto plugin_instance = loader->createUniqueInstance<core::NodeRegistrationInterface>(registration_type);
         rclcpp::Node::SharedPtr node = nullptr;
         rclcpp::CallbackGroup::SharedPtr group = nullptr;
         rclcpp::executors::SingleThreadedExecutor::SharedPtr executor = nullptr;

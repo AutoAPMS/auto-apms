@@ -56,6 +56,7 @@ add_library(${PROJECT_NAME} SHARED
   "src/node/node_manifest.cpp"
   "src/node/ros_node_context.cpp"
   "src/node/node_registration_loader.cpp"
+  "src/node/node_registration_from_library_adapter.cpp"
   "src/tree/script.cpp"
   "src/tree/tree_resource.cpp"
   "src/tree/tree_document.cpp"
