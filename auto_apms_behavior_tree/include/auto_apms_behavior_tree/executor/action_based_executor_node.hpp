@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <map>
+
 #include "auto_apms_behavior_tree/executor/generic_executor_node.hpp"
 #include "auto_apms_util/action_context.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -119,7 +121,7 @@ protected:
   virtual void onGoalExecutionTermination(const ExecutionResult & result, TriggerActionContext & context);
 
   TriggerActionContext trigger_action_context_;
-  TreeConstructor pending_tree_constructor_;
+  std::map<rclcpp_action::GoalUUID, TreeConstructor> pending_tree_constructors_;
 
 private:
   void onTermination(const ExecutionResult & result) override final;
@@ -225,7 +227,7 @@ rclcpp_action::GoalResponse ActionBasedTreeExecutorNode<ActionT>::handle_trigger
   }
 
   try {
-    pending_tree_constructor_ = getTreeConstructorFromGoal(goal_ptr);
+    pending_tree_constructors_[uuid] = getTreeConstructorFromGoal(goal_ptr);
   } catch (const std::exception & e) {
     RCLCPP_WARN(
       logger_, "Goal %s was REJECTED: Exception in getTreeConstructorFromGoal(): %s",
@@ -248,9 +250,20 @@ void ActionBasedTreeExecutorNode<ActionT>::handle_trigger_accept_(std::shared_pt
 {
   onAcceptedGoal(goal_handle_ptr);
 
+  const rclcpp_action::GoalUUID uuid = goal_handle_ptr->get_goal_id();
+  auto node = pending_tree_constructors_.extract(uuid);
+  if (node.empty()) {
+    RCLCPP_ERROR(
+      logger_, "No pending tree constructor found for goal %s.", rclcpp_action::to_string(uuid).c_str());
+    auto result_ptr = std::make_shared<TriggerResult>();
+    goal_handle_ptr->abort(result_ptr);
+    return;
+  }
+  TreeConstructor tree_constructor = std::move(node.mapped());
+
   const ExecutorParameters params = executor_param_listener_.get_params();
   try {
-    startExecution(pending_tree_constructor_, params.tick_rate, params.groot2_port);
+    startExecution(tree_constructor, params.tick_rate, params.groot2_port);
   } catch (const std::exception & e) {
     auto result_ptr = std::make_shared<TriggerResult>();
     goal_handle_ptr->abort(result_ptr);
