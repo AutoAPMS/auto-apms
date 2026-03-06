@@ -14,8 +14,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "auto_apms_behavior_tree_core/node/node_registration_interface.hpp"
 
 namespace auto_apms_behavior_tree::core
