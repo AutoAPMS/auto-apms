@@ -37,7 +37,7 @@ BT::Expected<BT::Any> createAnyFromParameterValue(const rclcpp::ParameterValue &
  * You may optionally specify the type of the parameter value to convert to using @p type. If you want to deduce the
  * type from @p any, set this to `rclcpp::PARAMETER_NOT_SET`.
  * @param any `BT::Any` object.
- * @param type Desired type of the parameter value. Set to `rclcpp::PARAMETER_NOT_SET` if it is unkown (e.g. if the
+ * @param type Desired type of the parameter value. Set to `rclcpp::PARAMETER_NOT_SET` if it is unknown (e.g. if the
  * parameter hasn't been set before).
  * @return Expected object for `rclcpp::ParameterValue`. Holds an error message if @p any couldn't be converted to @p
  * type.

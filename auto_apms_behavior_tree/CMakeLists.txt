@@ -90,8 +90,10 @@ set(CMAKE_CURRENT_SOURCE_DIR ${_temp})
 add_library(${PROJECT_NAME} SHARED
   "src/build_handler/build_handler.cpp"
   "src/build_handler/build_handler_loader.cpp"
+  "src/executor/options.cpp"
   "src/executor/state_observer.cpp"
   "src/executor/executor_base.cpp"
+  "src/executor/generic_executor_node.cpp"
   "src/executor/executor_node.cpp"
   "src/util/parameter.cpp"
   "src/util/node.cpp"

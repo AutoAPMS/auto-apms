@@ -677,7 +677,7 @@ template <class ActionT>
 inline std::string RosActionNode<ActionT>::getActionName() const
 {
   if (client_instance_) return client_instance_->name;
-  return "unkown";
+  return "unknown";
 }
 
 template <class ActionT>

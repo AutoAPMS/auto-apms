@@ -684,13 +684,13 @@ public:
      * @brief Populate the the node's data ports.
      *
      * This method verifies that @p port_values only refers to implemented ports and throws an exception if any
-     * values for unkown port names are provided.
+     * values for unknown port names are provided.
      *
      * @note This method only works as intended if the node represented by this element has already been registered.
      * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
      * @param port_values Port values to be used to populate the corresponding attributes of the node element.
      * @return Reference to the modified instance.
-     * @throws auto_apms_behavior_tree::exceptions::TreeDocumentError if @p port_values contains any unkown keys, e.g.
+     * @throws auto_apms_behavior_tree::exceptions::TreeDocumentError if @p port_values contains any unknown keys, e.g.
      * names for ports that are not implemented.
      */
     NodeElement & setPorts(const PortValues & port_values);

@@ -67,6 +67,20 @@ TreeBuilder & TreeBuilder::setScriptingEnum(const std::string & enum_name, int v
   return *this;
 }
 
+Tree TreeBuilder::instantiate(const TreeElement & tree_ele, TreeBlackboardSharedPtr bb_ptr)
+{
+  const std::string tree_name = tree_ele.getName();
+  if (hasTreeName(tree_name) && getTree(tree_name) == tree_ele) {
+    // If tree already exists and the given element points to the same tree, we can directly instantiate it
+    return instantiate(tree_name, bb_ptr);
+  }
+  // If the given tree element is not part of this document, we throw (users must use the associated builder for
+  // instantiating it)
+  throw exceptions::TreeBuildError(
+    "Cannot instantiate tree with name '" + tree_name +
+    "' because it doesn't belong to this TreeBuilder. Make sure to merge the tree before trying to instantiate it.");
+}
+
 Tree TreeBuilder::instantiate(const std::string & root_tree_name, TreeBlackboardSharedPtr bb_ptr)
 {
   if (!hasTreeName(root_tree_name)) {

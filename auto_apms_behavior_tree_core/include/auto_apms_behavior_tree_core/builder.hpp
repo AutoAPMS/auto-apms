@@ -118,11 +118,22 @@ public:
    * @brief Create the behavior tree.
    *
    * This creates an instance of `BT::Tree` which holds the memory of all node callbacks and enables the user to
+   * actually execute the behavior tree. The entry point is set to the name of @p tree_ele.
+   * @param tree_ele Behavior tree element that should be instantiated as a behavior tree.
+   * @param bb_ptr Optional pointer to a blackboard. This will be associated with the root tree.
+   * @return Instance of `BT::Tree` representing the configured behavior tree.
+   * @throw auto_apms_behavior_tree::exceptions::TreeBuildError if the tree cannot be instantiated.
+   */
+  Tree instantiate(const TreeElement & tree_ele, TreeBlackboardSharedPtr bb_ptr = TreeBlackboard::create());
+
+  /**
+   * @brief Create the behavior tree.
+   *
+   * This creates an instance of `BT::Tree` which holds the memory of all node callbacks and enables the user to
    * actually execute the behavior tree. The entry point is determined by @p root_tree_name.
    * @param root_tree_name Name of an existing tree that should be the root tree.
-   * @param bb_ptr Optional pointer to the parent blackboard.
+   * @param bb_ptr Optional pointer to a blackboard. This will be associated with the root tree.
    * @return Instance of `BT::Tree` representing the configured behavior tree.
-   * @throw auto_apms_behavior_tree::exceptions::TreeBuildError if there's no tree named @p root_tree_name.
    * @throw auto_apms_behavior_tree::exceptions::TreeBuildError if the tree cannot be instantiated.
    */
   Tree instantiate(const std::string & root_tree_name, TreeBlackboardSharedPtr bb_ptr = TreeBlackboard::create());
@@ -132,7 +143,7 @@ public:
    *
    * This creates an instance of `BT::Tree` which holds the memory of all node callbacks and enables the user to
    * actually execute the behavior tree. The entry point will be the underlying document's root tree.
-   * @param bb_ptr Optional pointer to the parent blackboard.
+   * @param bb_ptr Optional pointer to a blackboard. This will be associated with the root tree.
    * @return Instance of `BT::Tree` representing the configured behavior tree.
    * @throw auto_apms_behavior_tree::exceptions::TreeBuildError if it's not defined which one of the existing trees is
    * the root tree.

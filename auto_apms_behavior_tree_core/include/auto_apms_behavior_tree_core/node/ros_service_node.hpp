@@ -440,7 +440,7 @@ template <class ServiceT>
 inline std::string RosServiceNode<ServiceT>::getServiceName() const
 {
   if (client_instance_) return client_instance_->name;
-  return "unkown";
+  return "unknown";
 }
 
 template <class ServiceT>
