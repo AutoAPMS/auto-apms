@@ -553,8 +553,7 @@ rclcpp_action::CancelResponse GenericTreeExecutorNode::handle_command_cancel_(
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void GenericTreeExecutorNode::handle_command_accept_(
-  std::shared_ptr<CommandActionContext::GoalHandle> goal_handle_ptr)
+void GenericTreeExecutorNode::handle_command_accept_(std::shared_ptr<CommandActionContext::GoalHandle> goal_handle_ptr)
 {
   const auto command_request = goal_handle_ptr->get_goal()->command;
   ExecutionState requested_state;
