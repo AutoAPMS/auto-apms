@@ -253,8 +253,7 @@ void ActionBasedTreeExecutorNode<ActionT>::handle_trigger_accept_(std::shared_pt
   const rclcpp_action::GoalUUID uuid = goal_handle_ptr->get_goal_id();
   auto node = pending_tree_constructors_.extract(uuid);
   if (node.empty()) {
-    RCLCPP_ERROR(
-      logger_, "No pending tree constructor found for goal %s.", rclcpp_action::to_string(uuid).c_str());
+    RCLCPP_ERROR(logger_, "No pending tree constructor found for goal %s.", rclcpp_action::to_string(uuid).c_str());
     auto result_ptr = std::make_shared<TriggerResult>();
     goal_handle_ptr->abort(result_ptr);
     return;

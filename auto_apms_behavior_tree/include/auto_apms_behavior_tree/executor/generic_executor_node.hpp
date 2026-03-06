@@ -78,7 +78,7 @@ public:
   GenericTreeExecutorNode(const std::string & name, Options options);
 
   /**
-   * @brief Constructor with default options (everything disabled except build handler management).
+   * @brief Constructor with default options.
    * @param options ROS 2 node options.
    */
   explicit GenericTreeExecutorNode(rclcpp::NodeOptions options);
