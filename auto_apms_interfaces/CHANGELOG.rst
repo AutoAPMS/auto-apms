@@ -2,6 +2,14 @@
 Changelog for package auto_apms_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
 1.4.2 (2026-02-03)
 ------------------
 

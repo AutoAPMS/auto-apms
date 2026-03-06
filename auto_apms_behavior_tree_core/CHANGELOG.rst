@@ -2,6 +2,65 @@
 Changelog for package auto_apms_behavior_tree_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#18 <https://github.com/AutoAPMS/auto-apms/issues/18>`_ from AutoAPMS/feature/event-based-executor
+  Refactor: Tree executor modularity
+* Fix typos
+* Merge branch 'master' of https://github.com/AutoAPMS/auto-apms into feature/event-based-executor
+* Merge pull request `#17 <https://github.com/AutoAPMS/auto-apms/issues/17>`_ from AutoAPMS/feature/allow-custom-node-registration-plugins
+  Allow customizing node registration classes
+* Remove vector include
+* Add pragma once
+* Fix typo
+  Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+* Fix typo
+  Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+* Add convenience methods for custom tree constructor callbacks
+* Update docs for NodeRegistrationFromLibraryAdapter
+* Add helper for registering nodes from plain libraries
+* Add support for customizing the node registration class using pluginlib
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* doc: add notes on weird behavior of port related methods of NodeElement if node is not registered
+* fix: also unregister nodes when resetting TreeDocument
+* Merge pull request `#16 <https://github.com/AutoAPMS/auto-apms/issues/16>`_ from AutoAPMS/feature/node-element-iteration
+  Feature: Add features for better node element parsing
+* Add getXMLElement method to NodeElement for special use cases
+* Add getBlackboardRemapping to SubTree model
+* Add tests for node model types passed as template argument
+* Add iterator operator to NodeElement and extend getFirstNode and removeFirstNode with an option to set a flag for enabling deep search
+* Add copyright notice
+* Merge for integrating small convencience test scripts for manual use
+* Add small test programs for debugging resource registrations using C++ API
+* Contributors: Robin Müller
+
+* Merge branch 'master' of https://github.com/AutoAPMS/auto-apms into feature/event-based-executor
+* Merge pull request `#17 <https://github.com/AutoAPMS/auto-apms/issues/17>`_ from AutoAPMS/feature/allow-custom-node-registration-plugins
+  Allow customizing node registration classes
+* Remove vector include
+* Add pragma once
+* Fix typo
+  Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+* Fix typo
+  Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+* Add convenience methods for custom tree constructor callbacks
+* Update docs for NodeRegistrationFromLibraryAdapter
+* Add helper for registering nodes from plain libraries
+* Add support for customizing the node registration class using pluginlib
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* doc: add notes on weird behavior of port related methods of NodeElement if node is not registered
+* fix: also unregister nodes when resetting TreeDocument
+* Merge pull request `#16 <https://github.com/AutoAPMS/auto-apms/issues/16>`_ from AutoAPMS/feature/node-element-iteration
+  Feature: Add features for better node element parsing
+* Add getXMLElement method to NodeElement for special use cases
+* Add getBlackboardRemapping to SubTree model
+* Add tests for node model types passed as template argument
+* Add iterator operator to NodeElement and extend getFirstNode and removeFirstNode with an option to set a flag for enabling deep search
+* Add copyright notice
+* Merge for integrating small convencience test scripts for manual use
+* Add small test programs for debugging resource registrations using C++ API
+* Contributors: Robin Müller
+
 1.4.2 (2026-02-03)
 ------------------
 * Remove dependency for eigen3_cmake_module

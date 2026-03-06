@@ -2,6 +2,61 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#18 <https://github.com/AutoAPMS/auto-apms/issues/18>`_ from AutoAPMS/feature/event-based-executor
+  Refactor: Tree executor modularity
+* fix linting
+* Merge branch 'feature/event-based-executor' of https://github.com/AutoAPMS/auto-apms into feature/event-based-executor
+* Merge pull request `#19 <https://github.com/AutoAPMS/auto-apms/issues/19>`_ from AutoAPMS/copilot/sub-pr-18
+  Fix race condition in ActionBasedTreeExecutorNode: per-goal TreeConstructor storage via UUID map
+* Replace pending_tree_constructor\_ with UUID-keyed map to fix race condition
+  Co-authored-by: robin-mueller <83639955+robin-mueller@users.noreply.github.com>
+* Fix typos
+* Merge branch 'feature/event-based-executor' of https://github.com/AutoAPMS/auto-apms into feature/event-based-executor
+* Fix typo
+* remove unused includes
+  Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>
+* Fix linting
+* Make executor names more concise
+* Merge pull request `#17 <https://github.com/AutoAPMS/auto-apms/issues/17>`_ from AutoAPMS/feature/allow-custom-node-registration-plugins
+  Allow customizing node registration classes
+* Add convenience methods for custom tree constructor callbacks
+* Unify executor options
+* Add event based executors
+* Add support for customizing the node registration class using pluginlib
+* fix: remove project name prefix for executor_params library is ok since it is part of exported library with unique name
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* Add pre and post build callbacks for TreeExecutorNode
+* feature: allow for skipping the executor node configurations when using ros2 behavior send
+* feature: add more customization options to TreeExecutorNode
+* Fix get parameter node to return fail status instead of throwing when parameter was not found and undeclared params are not allowed
+* Merge pull request `#16 <https://github.com/AutoAPMS/auto-apms/issues/16>`_ from AutoAPMS/feature/node-element-iteration
+  Feature: Add features for better node element parsing
+* Add tests for node model types passed as template argument
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller, copilot-swe-agent[bot]
+
+* Fix linting
+* Make executor names more concise
+* Merge pull request `#17 <https://github.com/AutoAPMS/auto-apms/issues/17>`_ from AutoAPMS/feature/allow-custom-node-registration-plugins
+  Allow customizing node registration classes
+* Add convenience methods for custom tree constructor callbacks
+* Unify executor options
+* Add event based executors
+* Add support for customizing the node registration class using pluginlib
+* fix: remove project name prefix for executor_params library is ok since it is part of exported library with unique name
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* Add pre and post build callbacks for TreeExecutorNode
+* feature: allow for skipping the executor node configurations when using ros2 behavior send
+* feature: add more customization options to TreeExecutorNode
+* Fix get parameter node to return fail status instead of throwing when parameter was not found and undeclared params are not allowed
+* Merge pull request `#16 <https://github.com/AutoAPMS/auto-apms/issues/16>`_ from AutoAPMS/feature/node-element-iteration
+  Feature: Add features for better node element parsing
+* Add tests for node model types passed as template argument
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
 1.4.2 (2026-02-03)
 ------------------
 * Remove tinyxml2_vendor in favor of system dependency

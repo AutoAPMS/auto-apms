@@ -2,6 +2,16 @@
 Changelog for package auto_apms_ros2behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* feature: allow for skipping the executor node configurations when using ros2 behavior send
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
+* feature: allow for skipping the executor node configurations when using ros2 behavior send
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
 1.4.2 (2026-02-03)
 ------------------
 

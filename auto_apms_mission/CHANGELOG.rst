@@ -2,6 +2,19 @@
 Changelog for package auto_apms_mission
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#18 <https://github.com/AutoAPMS/auto-apms/issues/18>`_ from AutoAPMS/feature/event-based-executor
+  Refactor: Tree executor modularity
+* Fix typos
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
+* fix: introduce namespaced shared library names to avoid name clashes in merged installs
+* Merge for integrating small convencience test scripts for manual use
+* Contributors: Robin Müller
+
 1.4.2 (2026-02-03)
 ------------------
 
