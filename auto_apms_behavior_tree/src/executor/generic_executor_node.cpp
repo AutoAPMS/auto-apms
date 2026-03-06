@@ -35,7 +35,7 @@ GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Optio
 {
   // Remove all parameters from overrides that are not supported
   rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
-  std::vector<std::string> unkown_param_names;
+  std::vector<std::string> unknown_param_names;
   for (const std::string & param_name : res.names) {
     if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
     if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
@@ -49,12 +49,12 @@ GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Optio
       // Allow all builtin statically typed parameters
       continue;
     }
-    unkown_param_names.push_back(param_name);
+    unknown_param_names.push_back(param_name);
   }
-  if (!unkown_param_names.empty()) {
+  if (!unknown_param_names.empty()) {
     RCLCPP_WARN(
       logger_, "The following initial parameters are not supported and have been removed: [ %s ].",
-      auto_apms_util::join(unkown_param_names, ", ").c_str());
+      auto_apms_util::join(unknown_param_names, ", ").c_str());
   }
 
   // Set custom parameter default values.
