@@ -28,7 +28,7 @@ void NodeRegistrationFromLibraryAdapter::registerWithBehaviorTreeFactory(
 {
   const std::string lib_path = getPluginLibraryPath();
 
-  // Load the library in a temporary factory and extract the builder for the given node registration name to seperate it
+  // Load the library in a temporary factory and extract the builder for the given node registration name to separate it
   // from other nodes that are registered in the same plugin library.
   BT::BehaviorTreeFactory temp_factory;
   try {
