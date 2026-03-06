@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <map>
+#include <string>
 #include "rclcpp/rclcpp.hpp"
 
 namespace auto_apms_behavior_tree
