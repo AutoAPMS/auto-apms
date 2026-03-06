@@ -145,7 +145,7 @@ int main(int argc, char ** argv)
         "CMakeLists.txt of a ROS 2 package.");
     }
 
-    // Save the manifest (Merged multiple files into s single one)
+    // Save the manifest (Merged multiple files into a single one)
     output_manifest.toFile(output_file);
 
     // Print two lines to stdout:

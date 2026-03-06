@@ -9,9 +9,9 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14790307.svg)](https://doi.org/10.5281/zenodo.14790307)
 
 
-[![jazzy](https://img.shields.io/ros/v/jazzy/autoapms?&logo=ros&label=ROS%202)](https://index.ros.org/r/autoapms/#jazzy)
-[![kilted](https://img.shields.io/ros/v/kilted/autoapms?&logo=ros&label=ROS%202)](https://index.ros.org/r/autoapms/#kilted)
-[![rolling](https://img.shields.io/ros/v/rolling/autoapms?&logo=ros&label=ROS%202)](https://index.ros.org/r/autoapms/#rolling)
+[![jazzy](https://img.shields.io/ros/v/jazzy/autoapms?&logo=ros&label=jazzy)](https://index.ros.org/r/autoapms/#jazzy)
+[![kilted](https://img.shields.io/ros/v/kilted/autoapms?&logo=ros&label=kilted)](https://index.ros.org/r/autoapms/#kilted)
+[![rolling](https://img.shields.io/ros/v/rolling/autoapms?&logo=ros&label=rolling)](https://index.ros.org/r/autoapms/#rolling)
 
 ![auto-apms-gif](https://github.com/user-attachments/assets/0039aa09-9448-4102-9eb3-38138a805728)
 

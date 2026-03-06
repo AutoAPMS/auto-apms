@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <vector>
+#pragma once
 
 #include "auto_apms_behavior_tree_core/node/node_registration_interface.hpp"
 
