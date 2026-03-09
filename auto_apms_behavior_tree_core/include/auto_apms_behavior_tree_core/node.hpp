@@ -14,13 +14,12 @@
 
 #pragma once
 
-#include <pluginlib/class_list_macros.hpp>
-
 #include "auto_apms_behavior_tree_core/node/node_registration_template.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_action_node.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_publisher_node.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_service_node.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_subscriber_node.hpp"
+#include "pluginlib/class_list_macros.hpp"
 
 /**
  * @ingroup auto_apms_behavior_tree

@@ -1,12 +1,10 @@
 \mainpage C++ API Documentation
 
-<img src="https://autoapms.github.io/auto-apms-guide/logo/logo.png" style="display:block;float:none;margin-left:auto;margin-right:auto;width:70%">
+<img src="https://autoapms.github.io/auto-apms-guide/logo/autoapms_logo.svg" style="display:block;float:none;margin-left:auto;margin-right:auto;width:70%">
 
 <div align="center">
 
 <h3>Automated Action Planning and Management System for Robotics</h3>
-
-<a href="https://github.com/autoapms/auto-apms/releases">![Release](https://img.shields.io/github/v/release/autoapms/auto-apms?label=Release)</a>
 
 </div>
 

@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="70%" src="https://autoapms.github.io/auto-apms-guide/logo/logo.png">
+    <img width="70%" src="https://autoapms.github.io/auto-apms-guide/logo/autoapms_logo.svg">
 </p>
 
 # ⚙️ AutoAPMS - Streamlining Behaviors in ROS 2

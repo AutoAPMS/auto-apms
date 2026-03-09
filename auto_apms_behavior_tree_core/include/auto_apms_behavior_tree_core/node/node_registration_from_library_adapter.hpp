@@ -32,10 +32,26 @@ namespace auto_apms_behavior_tree::core
  *
  * **Usage:**
  *
- * 1. Create a subclass of this adapter for each plugin library you want to load nodes from and implement the
- *    NodeRegistrationFromLibraryAdapter::getPluginLibraryPath() method to return the correct library path.
+ * 1. Create a subclass of this adapter for each plugin library you want to load nodes from. Implement the
+ *    NodeRegistrationFromLibraryAdapter::getPluginLibraryPath() method to return the respective library path.
  *
- * 2. Use the NODE_REGISTRATION_TYPE keyword in the `auto_apms_behavior_tree_register_nodes` macro in your
+ * 2. Apply the pluginlib practices to register adapter subclasses as a node registration plugin using the
+ *    PLUGINLIB_EXPORT_CLASS macro.
+ *
+ *    ```cpp
+ *    #include "pluginlib/class_list_macros.hpp"
+ *    #include "auto_apms_behavior_tree_core/node/node_registration_interface.hpp"
+ *
+ *    PLUGINLIB_EXPORT_CLASS(
+ *      my_namespace::MyNodeRegistrationType,
+ *      auto_apms_behavior_tree::core::NodeRegistrationInterface)
+ *    ```
+ *
+ *    You also need to create a plugin manifest XML file and list the adapter subclasses as plugins in the manifest.
+ *    Follow ROS 2's documentation for details on how to do this:
+ *    https://docs.ros.org/en/rolling/Tutorials/Beginner-Client-Libraries/Pluginlib.html
+ *
+ * 3. Use the NODE_REGISTRATION_TYPE keyword in the `auto_apms_behavior_tree_register_nodes` macro in your
  *    CMakeLists.txt to specify the adapter subclass as the registration type for the nodes you want to register from
  *    the plugin library.
  *
@@ -51,7 +67,7 @@ namespace auto_apms_behavior_tree::core
  *    collection of nodes. The convention is to call this macro once for each node registration type (if it's not a
  *    template).
  *
- * 3. In your node manifest YAML, specify the fully qualified name of the adapter subclass as the class name for the
+ * 4. In your node manifest YAML, specify the fully qualified name of the adapter subclass as the class name for the
  *    nodes you want to register from the plugin library. You can specify the same adapter subclass multiple times with
  *    different registration names to register multiple nodes from the same library.
  *
@@ -59,8 +75,8 @@ namespace auto_apms_behavior_tree::core
  *    MyNodeName:
  *      class_name: my_package::MyNodeRegistrationType
  *
- *     MyOtherNodeName:
- *       class_name: my_package::MyNodeRegistrationType
+ *    MyOtherNodeName:
+ *      class_name: my_package::MyNodeRegistrationType
  *    ```
  *
  *    As you see, it is also possible to register multiple nodes from the same plugin library using the same adapter

@@ -20,7 +20,6 @@
 namespace auto_apms_behavior_tree::core
 {
 
-/// @cond INTERNAL
 /**
  * @brief Interface used for registering behavior tree node plugins.
  * @sa NodeRegistrationTemplate
@@ -53,6 +52,5 @@ public:
     BT::BehaviorTreeFactory & factory, const std::string & registration_name,
     const RosNodeContext * const context_ptr = nullptr) const = 0;
 };
-/// @endcond
 
 }  // namespace auto_apms_behavior_tree::core
