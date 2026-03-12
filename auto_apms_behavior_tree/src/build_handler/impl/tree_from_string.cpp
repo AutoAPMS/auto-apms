@@ -57,16 +57,24 @@ public:
       }
     } else {
       try {
-        working_doc_.setRootTreeName(entry_point);
-      } catch (const exceptions::TreeDocumentError & e) {
-        RCLCPP_WARN(logger_, "Cannot determine root tree: %s", e.what());
+        entry_point_ = TreeBasedEntryPoint(entry_point);
+      } catch (const std::exception & e) {
+        RCLCPP_WARN(logger_, "Cannot determine root tree from entry point: %s", e.what());
         return false;
       }
+      if (!working_doc_.hasTreeName(entry_point_.root_tree_name)) {
+        RCLCPP_WARN(
+          logger_, "The specified entry point root tree '%s' does not exist in the provided tree XML.",
+          entry_point_.root_tree_name.c_str());
+        return false;
+      }
+      working_doc_.setRootTreeName(entry_point_.root_tree_name);
     }
+
     return true;
   }
 
-  TreeDocument::TreeElement buildTree(TreeDocument & doc, TreeBlackboard & /*bb*/) override final
+  TreeDocument::TreeElement buildTree(TreeDocument & doc, TreeBlackboard & bb) override final
   {
     // Merge document and adopt root tree
     doc.mergeTreeDocument(working_doc_, true);
@@ -74,11 +82,17 @@ public:
     // Reset the local tree document, as the tree moved to doc
     working_doc_.reset();
 
+    // Set initial blackboard values if specified
+    for (const auto & [key, value] : entry_point_.inital_blackboard) {
+      bb.set(key, value);
+    }
+
     // The document MUST have a root tree. We made sure of that during setBuildRequest
     return doc.getRootTree();
   }
 
 private:
+  TreeBasedEntryPoint entry_point_;
   core::TreeDocument working_doc_;
 };
 

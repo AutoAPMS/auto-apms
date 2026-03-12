@@ -322,6 +322,7 @@ if(BUILD_TESTING)
   ament_copyright()
 
   ament_add_gtest(${PROJECT_NAME}_unit_tests
+    "test/unit/build_handler.cpp"
     "test/unit/node_registration.cpp"
     "test/unit/tree_document_model_templates.cpp"
   )

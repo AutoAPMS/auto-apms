@@ -20,4 +20,18 @@
     </Sequence>
   </BehaviorTree>
 
+  <BehaviorTree ID="HelloWorldWithEntryPoint">
+    <Sequence>
+      <Logger message="Hello World!" level="INFO"/>
+      <Sleep msec="200"/>
+      <Sequence>
+        <ForceSuccess>
+          <WasEntryUpdated entry="{name}" _onSuccess="text := &apos;My name is &apos; + name" _onFailure="text := &apos;My name is not given&apos;"/>
+        </ForceSuccess>
+        <Logger message="{text}" level="INFO"/>
+      </Sequence>
+      <Sleep msec="200"/>
+    </Sequence>
+  </BehaviorTree>
+
 </root>

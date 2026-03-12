@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <map>
+
 #include "auto_apms_behavior_tree_core/definitions.hpp"
 #include "auto_apms_behavior_tree_core/node/node_registration_loader.hpp"
 #include "auto_apms_behavior_tree_core/tree/tree_document.hpp"
@@ -29,6 +31,35 @@
 
 namespace auto_apms_behavior_tree
 {
+
+/**
+ * @brief Decoded entry point information for low-level tree building.
+ *
+ * The expected format of the encoded string is:
+ *
+ * **MyTreeName(var1=value1,var2=value2,...)**
+ *
+ * It follows the syntax used by a lot of programming languages for instantiating classes or calling funtions. The part
+ * before the parantheses is the **tree name** and the part within defines its **inital blackboard**. The initial
+ * blackboard values are given as comma-separated key-value pairs, where the key and value are separated by an equals
+ * sign. The value is expected to be a string that can be parsed into the respective type of the blackboard entry.
+ */
+struct TreeBasedEntryPoint
+{
+  std::string root_tree_name;
+  std::map<std::string, std::string> inital_blackboard;
+
+  /**
+   * @brief Default constructor.
+   */
+  TreeBasedEntryPoint() = default;
+
+  /**
+   * @brief Constructor that decodes the given string into the expected format.
+   * @param encoded_str String that encodes the entry point.
+   */
+  TreeBasedEntryPoint(const std::string & encoded_str);
+};
 
 /**
  * @ingroup auto_apms_behavior_tree
@@ -183,7 +214,7 @@ public:
   /**
    * @brief Specify the behavior tree build request encoded in a string.
    *
-   * Additionally, you may provide an associated node manifest and a specific entry_point. When
+   * Additionally, you may provide an associated node manifest and a specific entry point. When
    * using TreeExecutorNode, all arguments are populated using the respective parameters of the incoming
    * `StartTreeExecutor` action goal. It's up to the specific implementation, if and how they are interpreted.
    *
