@@ -93,6 +93,8 @@ std::set<NodeManifestResourceIdentity> getNodeManifestResourceIdentities(const s
   return identities;
 }
 
+NodeModelMap getNativeNodeModel() { return TreeDocument().getNodeModel(true); }
+
 NodeManifest::NodeManifest(const Map & map) : map_{map} {}
 
 NodeManifest NodeManifest::fromFiles(const std::vector<std::string> & paths)

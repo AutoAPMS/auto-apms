@@ -337,6 +337,12 @@ private:
   NodeModelMap node_model_;
 };
 
+/**
+ * @brief Get a model of the native BehaviorTree.CPP nodes.
+ * @return Instance of NodeModelMap containing a model for each native node.
+ */
+NodeModelMap getNativeNodeModel();
+
 }  // namespace auto_apms_behavior_tree::core
 
 // #####################################################################################################################
