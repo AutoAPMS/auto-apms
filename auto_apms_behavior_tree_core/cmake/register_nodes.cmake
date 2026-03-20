@@ -168,7 +168,7 @@ macro(auto_apms_behavior_tree_register_nodes target)
     endif()
 
     # Generate node metadata for the specified manifests and optionally generate a node model header.
-    auto_apms_behavior_tree_generate_node_metadata(
+    auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args(
       "${metadata_id}"
       ${ARGS_NODE_MANIFEST}
       NODE_MODEL_HEADER_TARGET

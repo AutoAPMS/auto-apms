@@ -30,6 +30,7 @@ set(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR "@_AUTO_APMS_BEH
 set(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST "@_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST@")
 
 include("${@PROJECT_NAME@_DIR}/generate_node_metadata.cmake")
+include("${@PROJECT_NAME@_DIR}/generate_node_metadata_hybrid_manifest_args.cmake")
 include("${@PROJECT_NAME@_DIR}/register_behavior.cmake")
 include("${@PROJECT_NAME@_DIR}/register_nodes.cmake")
 include("${@PROJECT_NAME@_DIR}/register_trees.cmake")

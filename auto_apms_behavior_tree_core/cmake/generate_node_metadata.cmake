@@ -208,7 +208,7 @@ ${_error}"
 
       "\"${_generated_node_model_abs_path__build}\"" # File to write the behavior tree node model to
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    DEPENDS "${_AUTO_APMS_BEHAVIOR_TREE_CORE__CREATE_NODE_MODEL_CMD}" ${ARGS_NODE_MANIFEST} ${_node_library_paths}
+    DEPENDS "${_AUTO_APMS_BEHAVIOR_TREE_CORE__CREATE_NODE_MODEL_CMD}" ${_create_node_manifest_input_file_paths__absolute} ${_node_library_paths}
     COMMENT "Generating behavior tree node model '${metadata_id}' with libraries [${_node_library_paths}] and manifest file ${_generated_node_manifest_abs_path__build}."
   )
   set(_generate_node_model_target "create_node_model__${_custom_target_suffix}")
