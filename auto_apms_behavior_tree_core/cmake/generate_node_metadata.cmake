@@ -86,9 +86,9 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
   set(options "")
   set(oneValueArgs NODE_MODEL_HEADER_TARGET GENERATED_MANIFEST_FILE_NAME GENERATED_MODEL_FILE_NAME)
   set(multiValueArgs "")
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  cmake_parse_arguments(_generate_node_metadata_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  if("${ARGS_UNPARSED_ARGUMENTS}" STREQUAL "")
+  if("${_generate_node_metadata__UNPARSED_ARGUMENTS}" STREQUAL "")
     message(
         FATAL_ERROR
         "auto_apms_behavior_tree_generate_node_metadata(): You didn't provide any node manifest yaml files."
@@ -109,22 +109,22 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
   set(_generated_node_manifest_file_name "node_manifest_${metadata_id}.yaml")
   set(_generated_node_model_file_name "node_model_${metadata_id}.xml")
 
-  if(NOT "${ARGS_GENERATED_MANIFEST_FILE_NAME}" STREQUAL "")
-    get_filename_component(_generated_node_manifest_file_stem "${ARGS_GENERATED_MANIFEST_FILE_NAME}" NAME_WE)
+  if(NOT "${_generate_node_metadata__GENERATED_MANIFEST_FILE_NAME}" STREQUAL "")
+    get_filename_component(_generated_node_manifest_file_stem "${_generate_node_metadata__GENERATED_MANIFEST_FILE_NAME}" NAME_WE)
     set(_generated_node_manifest_file_name "${_generated_node_manifest_file_stem}.yaml")
   endif()
 
-  if(NOT "${ARGS_GENERATED_MODEL_FILE_NAME}" STREQUAL "")
-    get_filename_component(_generated_node_model_file_stem "${ARGS_GENERATED_MODEL_FILE_NAME}" NAME_WE)
+  if(NOT "${_generate_node_metadata__GENERATED_MODEL_FILE_NAME}" STREQUAL "")
+    get_filename_component(_generated_node_model_file_stem "${_generate_node_metadata__GENERATED_MODEL_FILE_NAME}" NAME_WE)
     set(_generated_node_model_file_name "${_generated_node_model_file_stem}.xml")
   endif()
 
-  list(REMOVE_DUPLICATES ARGS_UNPARSED_ARGUMENTS) # Disregard duplicate manifest files
+  list(REMOVE_DUPLICATES _generate_node_metadata__UNPARSED_ARGUMENTS) # Disregard duplicate manifest files
   file(MAKE_DIRECTORY "${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}") # Create build directory if not existing
 
   # Replace potential CMake variable names with their values inside the manifest yaml file
   set(_create_node_manifest_input_file_paths__absolute "")
-  foreach(_input_manifest_file_path ${ARGS_UNPARSED_ARGUMENTS})
+  foreach(_input_manifest_file_path ${_generate_node_metadata__UNPARSED_ARGUMENTS})
     get_filename_component(_input_manifest_file_path__source "${_input_manifest_file_path}" REALPATH)
     if(NOT EXISTS "${_input_manifest_file_path__source}")
       message(
@@ -168,7 +168,7 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
   if(NOT _return_code EQUAL 0)
     message(
       FATAL_ERROR
-      "Failed to create node plugin manifest '${metadata_id}' (Return code: ${_return_code}). Manifest files: [${ARGS_UNPARSED_ARGUMENTS}]
+      "Failed to create node plugin manifest '${metadata_id}' (Return code: ${_return_code}). Manifest files: [${_generate_node_metadata__UNPARSED_ARGUMENTS}]
 Build info: [${_AUTO_APMS_BEHAVIOR_TREE_CORE__NODE_BUILD_INFO}]
 Output file: ${_generated_node_manifest_abs_path__build}
 ${_error}"
@@ -228,7 +228,7 @@ ${_error}"
     DESTINATION "${_generated_node_model_rel_dir__install}"
   )
 
-  if(NOT "${ARGS_NODE_MODEL_HEADER_TARGET}" STREQUAL "")
+  if(NOT "${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" STREQUAL "")
     # Generate a header that makes the node metadata available to downstream C++ source code
     set(_generated_node_model_header_abs_path__build "${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}/${PROJECT_NAME}/${metadata_id}.hpp")
     file(MAKE_DIRECTORY "${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}/${PROJECT_NAME}")
@@ -248,16 +248,16 @@ ${_error}"
       DEPENDS "${_generated_node_model_header_abs_path__build}"
     )
     add_dependencies("${_generate_node_model_header_target}" "${_generate_node_model_target}")
-    add_dependencies("${ARGS_NODE_MODEL_HEADER_TARGET}" "${_generate_node_model_header_target}")
+    add_dependencies("${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" "${_generate_node_model_header_target}")
 
     # Make generated header includable to this and downstream targets
-    get_target_property(_type "${ARGS_NODE_MODEL_HEADER_TARGET}" TYPE)
+    get_target_property(_type "${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" TYPE)
     if("${_type}" STREQUAL "INTERFACE_LIBRARY")
       set(_keyword "INTERFACE")
     else()
       set(_keyword "PUBLIC")
     endif()
-    target_include_directories("${ARGS_NODE_MODEL_HEADER_TARGET}" "${_keyword}"
+    target_include_directories("${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" "${_keyword}"
       $<BUILD_INTERFACE:${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}>
       $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
     )
@@ -267,17 +267,17 @@ ${_error}"
     # CMake will fail to compile the source code. Therefore, it is also recommended to add auto_apms_behavior_tree_core
     # to ament_export_dependencies, since we don't want downstream packages to call find_package because of an
     # unresolved dependency of a target from another package.
-    # We do not add target_link_libraries("${ARGS_NODE_MODEL_HEADER_TARGET}" auto_apms_behavior_tree_core)
+    # We do not add target_link_libraries("${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" auto_apms_behavior_tree_core)
     # here, because we cannot detect which signature of target_link_libraries (plain or all-keyword) has been used before.
     # CMake only allows to use one type of signature. The user must add that manually and we hint that in a warning.
-    target_links_against("${ARGS_NODE_MODEL_HEADER_TARGET}" "auto_apms_behavior_tree_core::auto_apms_behavior_tree_core" _model_target_links_against_auto_apms_behavior_tree_core)
+    target_links_against("${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" "auto_apms_behavior_tree_core::auto_apms_behavior_tree_core" _model_target_links_against_auto_apms_behavior_tree_core)
     if(NOT _model_target_links_against_auto_apms_behavior_tree_core)
-      target_links_against("${ARGS_NODE_MODEL_HEADER_TARGET}" "auto_apms_behavior_tree::auto_apms_behavior_tree" _model_target_links_against_auto_apms_behavior_tree_core)
+      target_links_against("${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}" "auto_apms_behavior_tree::auto_apms_behavior_tree" _model_target_links_against_auto_apms_behavior_tree_core)
     endif()
     if(NOT _model_target_links_against_auto_apms_behavior_tree_core)
-      message(WARNING "auto_apms_behavior_tree_generate_node_metadata(): The target '${ARGS_NODE_MODEL_HEADER_TARGET}' provided using the optional argument NODE_MODEL_HEADER_TARGET doesn't link against package 'auto_apms_behavior_tree_core' or 'auto_apms_behavior_tree'.
-It is necessary to add one of these packages to ${ARGS_NODE_MODEL_HEADER_TARGET}'s dependencies and export it (!) to enable downstream packages to include the behavior tree node model header generated by this macro:
-target_link_libraries(${ARGS_NODE_MODEL_HEADER_TARGET} PUBLIC
+      message(WARNING "auto_apms_behavior_tree_generate_node_metadata(): The target '${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}' provided using the optional argument NODE_MODEL_HEADER_TARGET doesn't link against package 'auto_apms_behavior_tree_core' or 'auto_apms_behavior_tree'.
+It is necessary to add one of these packages to ${_generate_node_metadata__NODE_MODEL_HEADER_TARGET}'s dependencies and export it (!) to enable downstream packages to include the behavior tree node model header generated by this macro:
+target_link_libraries(${_generate_node_metadata__NODE_MODEL_HEADER_TARGET} PUBLIC
   ... # Other packages
   auto_apms_behavior_tree_core
 )

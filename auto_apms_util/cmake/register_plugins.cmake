@@ -60,8 +60,8 @@ macro(auto_apms_util_register_plugins target base_class)
   set(options "")
   set(oneValueArgs FACTORY_TEMPLATE_CLASS)
   set(multiValueArgs "")
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-  foreach(_class_name ${ARGS_UNPARSED_ARGUMENTS})
+  cmake_parse_arguments(_register_plugins_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  foreach(_class_name ${_register_plugins__UNPARSED_ARGUMENTS})
     if("${_class_name}" IN_LIST _AUTO_APMS_UTIL__PLUGIN_CLASS_NAMES)
       message(
       FATAL_ERROR
@@ -72,10 +72,10 @@ macro(auto_apms_util_register_plugins target base_class)
     list(APPEND _AUTO_APMS_UTIL__PLUGIN_CLASS_NAMES "${_class_name}")
 
     # Append to the variable that holds the content of the pluginlib plugins.xml file
-    if("${ARGS_FACTORY_TEMPLATE_CLASS}" STREQUAL "")
+    if("${_register_plugins__FACTORY_TEMPLATE_CLASS}" STREQUAL "")
       set(_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT "${_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT}<library path=\"${target}\"><class name=\"${_class_name}\" type=\"${_class_name}\" base_class_type=\"${base_class}\" /></library>\n")
     else()
-      set(_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT "${_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT}<library path=\"${target}\"><class name=\"${_class_name}\" type=\"${ARGS_FACTORY_TEMPLATE_CLASS}<${_class_name}>\" base_class_type=\"${base_class}\" /></library>\n")
+      set(_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT "${_AUTO_APMS_UTIL__PLUGINS_XML_CONTENT}<library path=\"${target}\"><class name=\"${_class_name}\" type=\"${_register_plugins__FACTORY_TEMPLATE_CLASS}<${_class_name}>\" base_class_type=\"${base_class}\" /></library>\n")
     endif()
   endforeach()
 

@@ -62,30 +62,30 @@ macro(auto_apms_behavior_tree_register_nodes target)
   set(options "")
   set(oneValueArgs NODE_MANIFEST_ALIAS NODE_MODEL_HEADER_TARGET NODE_REGISTRATION_TYPE)
   set(multiValueArgs NODE_MANIFEST)
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  cmake_parse_arguments(_register_nodes_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   # Default NODE_REGISTRATION_TYPE: auto_apms_behavior_tree::core::NodeRegistrationTemplate<>
   # The trailing <> indicates that this is a factory template class. The class names passed
   # as ARGN will be substituted into the template (e.g. NodeRegistrationTemplate<MyClass>).
   # If the value does NOT end with <>, it means the ARGN class names are registered directly
   # (i.e. the class itself is a NodeRegistrationInterface subclass, not template-wrapped).
-  if("${ARGS_NODE_REGISTRATION_TYPE}" STREQUAL "")
-    set(ARGS_NODE_REGISTRATION_TYPE "auto_apms_behavior_tree::core::NodeRegistrationTemplate<>")
+  if("${_register_nodes__NODE_REGISTRATION_TYPE}" STREQUAL "")
+    set(_register_nodes__NODE_REGISTRATION_TYPE "auto_apms_behavior_tree::core::NodeRegistrationTemplate<>")
   endif()
 
   # Calling this macro without any node classes is valid, if one only wants to register configurations
   # through the NODE_MANIFEST keyword. So we must check for that here.
-  if(NOT "${ARGS_UNPARSED_ARGUMENTS}" STREQUAL "")
+  if(NOT "${_register_nodes__UNPARSED_ARGUMENTS}" STREQUAL "")
     # Determine if NODE_REGISTRATION_TYPE is a factory template (ends with <>)
-    string(REGEX MATCH "<>$" _is_factory_template "${ARGS_NODE_REGISTRATION_TYPE}")
+    string(REGEX MATCH "<>$" _is_factory_template "${_register_nodes__NODE_REGISTRATION_TYPE}")
 
     if(_is_factory_template)
       # Template factory mode: strip trailing <> to get the template class prefix
-      string(REGEX REPLACE "<>$" "" _factory_template_class "${ARGS_NODE_REGISTRATION_TYPE}")
+      string(REGEX REPLACE "<>$" "" _factory_template_class "${_register_nodes__NODE_REGISTRATION_TYPE}")
       auto_apms_util_register_plugins(
         ${target}
         "auto_apms_behavior_tree::core::NodeRegistrationInterface"
-        ${ARGS_UNPARSED_ARGUMENTS}
+        ${_register_nodes__UNPARSED_ARGUMENTS}
         FACTORY_TEMPLATE_CLASS "${_factory_template_class}"
       )
     else()
@@ -93,7 +93,7 @@ macro(auto_apms_behavior_tree_register_nodes target)
       auto_apms_util_register_plugins(
         ${target}
         "auto_apms_behavior_tree::core::NodeRegistrationInterface"
-        ${ARGS_UNPARSED_ARGUMENTS}
+        ${_register_nodes__UNPARSED_ARGUMENTS}
       )
     endif()
 
@@ -138,7 +138,7 @@ macro(auto_apms_behavior_tree_register_nodes target)
 
     # Append build information of the specified node plugins (<class_name>@<library_path>@<registration_type>).
     # Make sure to do before calling generating the node metadata (Otherwise build info would be unavailable).
-    foreach(_class_name ${ARGS_UNPARSED_ARGUMENTS})
+    foreach(_class_name ${_register_nodes__UNPARSED_ARGUMENTS})
       if(_is_factory_template)
         set(_registration_type "${_factory_template_class}<${_class_name}>")
       else()
@@ -149,13 +149,13 @@ macro(auto_apms_behavior_tree_register_nodes target)
   endif()
 
   # Automatically create node metadata if any manifest files are provided
-  if("${ARGS_NODE_MANIFEST}" STREQUAL "")
-    if(NOT "${ARGS_NODE_MANIFEST_ALIAS}" STREQUAL "")
+  if("${_register_nodes__NODE_MANIFEST}" STREQUAL "")
+    if(NOT "${_register_nodes__NODE_MANIFEST_ALIAS}" STREQUAL "")
         message(WARNING
             "auto_apms_behavior_tree_register_nodes(): Argument NODE_MANIFEST_ALIAS requires that you also specify NODE_MANIFEST. Unless you don't specify both arguments, NODE_MANIFEST_ALIAS will be ignored."
         )
     endif()
-    if(NOT "${ARGS_NODE_MODEL_HEADER_TARGET}" STREQUAL "")
+    if(NOT "${_register_nodes__NODE_MODEL_HEADER_TARGET}" STREQUAL "")
         message(WARNING
             "auto_apms_behavior_tree_register_nodes(): Argument NODE_MODEL_HEADER_TARGET requires that you also specify NODE_MANIFEST. Unless you don't specify both arguments, NODE_MODEL_HEADER_TARGET will be ignored."
         )
@@ -163,16 +163,16 @@ macro(auto_apms_behavior_tree_register_nodes target)
   else()
     # Apply metadata ID aliasing if a manifest alias is provided, otherwise use the target name as default id.
     set(metadata_id "${target}")
-    if(NOT "${ARGS_NODE_MANIFEST_ALIAS}" STREQUAL "")
-      set(metadata_id "${ARGS_NODE_MANIFEST_ALIAS}")
+    if(NOT "${_register_nodes__NODE_MANIFEST_ALIAS}" STREQUAL "")
+      set(metadata_id "${_register_nodes__NODE_MANIFEST_ALIAS}")
     endif()
 
     # Generate node metadata for the specified manifests and optionally generate a node model header.
     auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args(
       "${metadata_id}"
-      ${ARGS_NODE_MANIFEST}
+      ${_register_nodes__NODE_MANIFEST}
       NODE_MODEL_HEADER_TARGET
-      "${ARGS_NODE_MODEL_HEADER_TARGET}"
+      "${_register_nodes__NODE_MODEL_HEADER_TARGET}"
     )
   endif()
 

@@ -56,9 +56,9 @@ macro(auto_apms_behavior_tree_register_behavior build_request)
   set(options MARK_AS_INTERNAL)
   set(oneValueArgs BUILD_HANDLER CATEGORY ALIAS ENTRY_POINT)
   set(multiValueArgs NODE_MANIFEST)
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  cmake_parse_arguments(_register_behavior_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  if(NOT DEFINED ARGS_BUILD_HANDLER)
+  if(NOT DEFINED _register_behavior__BUILD_HANDLER)
     message(
       FATAL_ERROR
       "auto_apms_behavior_tree_register_behavior(): The BUILD_HANDLER keyword is required. You must specify the fully qualified class name of the default behavior tree build handler used to create the behavior from the given definitions"
@@ -66,17 +66,17 @@ macro(auto_apms_behavior_tree_register_behavior build_request)
   endif()
 
   set(_category "${_AUTO_APMS_BEHAVIOR_TREE_CORE__DEFAULT_BEHAVIOR_CATEGORY}")
-  if(DEFINED ARGS_CATEGORY)
-    set(_category "${ARGS_CATEGORY}")
+  if(DEFINED _register_behavior__CATEGORY)
+    set(_category "${_register_behavior__CATEGORY}")
   endif()
-  if(ARGS_MARK_AS_INTERNAL)
+  if(_register_behavior__MARK_AS_INTERNAL)
     # If the behavior is marked as internal, append the internal category suffix
     set(_category "${_category}${_AUTO_APMS_BEHAVIOR_TREE_CORE__INTERNAL_BEHAVIOR_CATEGORY_SUFFIX}")
   endif()
 
   set(_entry_point "")
-  if(DEFINED ARGS_ENTRY_POINT)
-    set(_entry_point "${ARGS_ENTRY_POINT}")
+  if(DEFINED _register_behavior__ENTRY_POINT)
+    set(_entry_point "${_register_behavior__ENTRY_POINT}")
   endif()
 
   # Check if category is valid
@@ -103,8 +103,8 @@ macro(auto_apms_behavior_tree_register_behavior build_request)
   get_filename_component(_behavior_alias "${build_request}" NAME_WE) # Simply returns the string itself if it is not a file path
 
   # If provided, overwrite the alias for the behavior
-  if(DEFINED ARGS_ALIAS)
-    set(_behavior_alias "${ARGS_ALIAS}")
+  if(DEFINED _register_behavior__ALIAS)
+    set(_behavior_alias "${_register_behavior__ALIAS}")
   endif()
 
   # Check if alias is valid
@@ -154,9 +154,9 @@ macro(auto_apms_behavior_tree_register_behavior build_request)
     set(_build_request_field "${build_request}")
   endif()
 
-  auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args("${_metadata_id}" ${ARGS_NODE_MANIFEST})
+  auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args("${_metadata_id}" ${_register_behavior__NODE_MANIFEST})
 
   # Populate resource file variable
-  set(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_FILE__BEHAVIOR "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_FILE__BEHAVIOR}${_category}|${_behavior_alias}|${ARGS_BUILD_HANDLER}|${_build_request_field}|${_entry_point}|${_auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install}\n")
+  set(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_FILE__BEHAVIOR "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_FILE__BEHAVIOR}${_category}|${_behavior_alias}|${_register_behavior__BUILD_HANDLER}|${_build_request_field}|${_entry_point}|${_auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install}\n")
 
 endmacro()

@@ -19,8 +19,8 @@
 # resource identities using the '::' delimiter) and resolves them to their corresponding install paths.
 # If necessary, it calls auto_apms_behavior_tree_generate_node_metadata to generate new metadata.
 #
-# After calling this macro, the variable _auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install will contain the resolved
-# install paths (or be empty if no node manifest arguments were provided).
+# After calling this macro, the variable _auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install
+# will contain the resolved install paths (or be empty if no node manifest arguments were provided).
 #
 # :param metadata_id: The metadata identifier used for generating or looking up node manifests.
 # :type metadata_id: string
@@ -40,16 +40,16 @@ macro(auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args metada
   set(options "")
   set(oneValueArgs NODE_MODEL_HEADER_TARGET)
   set(multiValueArgs "")
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  cmake_parse_arguments(_generate_node_metadata_hybrid_manifest_args_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   # Build optional arguments to forward to auto_apms_behavior_tree_generate_node_metadata
   set(_forward_args "")
-  if(NOT "${ARGS_NODE_MODEL_HEADER_TARGET}" STREQUAL "")
-    list(APPEND _forward_args NODE_MODEL_HEADER_TARGET "${ARGS_NODE_MODEL_HEADER_TARGET}")
+  if(NOT "${_generate_node_metadata_hybrid_manifest_args__NODE_MODEL_HEADER_TARGET}" STREQUAL "")
+    list(APPEND _forward_args NODE_MODEL_HEADER_TARGET "${_generate_node_metadata_hybrid_manifest_args__NODE_MODEL_HEADER_TARGET}")
   endif()
 
   set(_auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install "") # Empty string if no manifest is given
-  if(NOT "${ARGS_UNPARSED_ARGUMENTS}" STREQUAL "")
+  if(NOT "${_generate_node_metadata_hybrid_manifest_args__UNPARSED_ARGUMENTS}" STREQUAL "")
 
     set(_existing_metadata_ids__build "")
     set(_existing_node_manifest_abs_paths__build "")
@@ -89,9 +89,9 @@ macro(auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args metada
     # Change the input variables for the auto_apms_behavior_tree_generate_node_metadata macro called later
     # so that we reuse all existing metadata
     #
-    set(_generate_metadata_inputs ${ARGS_UNPARSED_ARGUMENTS})
+    set(_generate_metadata_inputs ${_generate_node_metadata_hybrid_manifest_args__UNPARSED_ARGUMENTS})
     set(_matching_existing_metadata_count 0)
-    foreach(_var ${ARGS_UNPARSED_ARGUMENTS})
+    foreach(_var ${_generate_node_metadata_hybrid_manifest_args__UNPARSED_ARGUMENTS})
       # Check wether the user provided a metadata id referring to this package or another (Using the '::' delimiter)
       string(FIND "${_var}" "::" _index)
       if("${_index}" GREATER -1)
@@ -134,7 +134,7 @@ macro(auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args metada
     # Call auto_apms_behavior_tree_generate_node_metadata reusing as much of the existing metadata as possible
     if("${_matching_existing_metadata_count}" EQUAL 0)
       # We cannot use any existing node manifests and must generate everything
-      auto_apms_behavior_tree_generate_node_metadata("${metadata_id}" ${ARGS_UNPARSED_ARGUMENTS} ${_forward_args})
+      auto_apms_behavior_tree_generate_node_metadata("${metadata_id}" ${_generate_node_metadata_hybrid_manifest_args__UNPARSED_ARGUMENTS} ${_forward_args})
 
       # Sticking to the default manifest install file path used by the macro above for the resource info
       set(_auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_DIR_RELATIVE__METADATA}/node_manifest_${metadata_id}.yaml")

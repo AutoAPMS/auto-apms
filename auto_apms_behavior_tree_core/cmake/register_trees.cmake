@@ -39,9 +39,9 @@ macro(auto_apms_behavior_tree_register_trees)
   set(options MARK_AS_INTERNAL)
   set(oneValueArgs ALIAS_NAMESPACE)
   set(multiValueArgs NODE_MANIFEST)
-  cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+  cmake_parse_arguments(_register_trees_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-  foreach(_arg ${ARGS_UNPARSED_ARGUMENTS})
+  foreach(_arg ${_register_trees__UNPARSED_ARGUMENTS})
     # Check if behavior tree file exists
     get_filename_component(_tree_abs_path__source "${_arg}" REALPATH)
     if(NOT EXISTS "${_tree_abs_path__source}")
@@ -51,7 +51,7 @@ macro(auto_apms_behavior_tree_register_trees)
       )
     endif()
 
-    if(NOT DEFINED ARGS_ALIAS_NAMESPACE)
+    if(NOT DEFINED _register_trees__ALIAS_NAMESPACE)
       # Verify that the file hasn't been registered.
       if("${_tree_abs_path__source}" IN_LIST _package_tree_file_abs_paths__source)
         message(
@@ -99,8 +99,8 @@ macro(auto_apms_behavior_tree_register_trees)
     endforeach()
 
     # Assign tree resource namespace
-    if(DEFINED ARGS_ALIAS_NAMESPACE)
-      set(_tree_resource_alias_namespace "${ARGS_ALIAS_NAMESPACE}")
+    if(DEFINED _register_trees__ALIAS_NAMESPACE)
+      set(_tree_resource_alias_namespace "${_register_trees__ALIAS_NAMESPACE}")
     else()
       get_filename_component(_tree_resource_alias_namespace "${_arg}" NAME_WE)
     endif()
@@ -140,9 +140,9 @@ macro(auto_apms_behavior_tree_register_trees)
           CATEGORY "${_AUTO_APMS_BEHAVIOR_TREE_CORE__DEFAULT_BEHAVIOR_CATEGORY__TREE}"
           ALIAS "${_tree_resource_alias_namespace}::${_tree_name}"
           ENTRY_POINT "${_tree_name}"
-          NODE_MANIFEST ${ARGS_NODE_MANIFEST}
+          NODE_MANIFEST ${_register_trees__NODE_MANIFEST}
       )
-      if(ARGS_MARK_AS_INTERNAL)
+      if(_register_trees__MARK_AS_INTERNAL)
         list(APPEND _register_args MARK_AS_INTERNAL)
       endif()
       auto_apms_behavior_tree_register_behavior(${_register_args})
