@@ -46,6 +46,19 @@ class TestBehaviorResourceDiscovery:
         assert resource.identity.package_name == PACKAGE
         assert resource.identity.behavior_alias == "test_tree::TestTree"
 
+    def test_find_by_alias_with_empty_package_prefix(self):
+        """::<behavior_alias> — empty package name, searches all packages."""
+        resource = BehaviorResource("::test_tree::TestTree")
+        assert resource.identity.package_name == PACKAGE
+        assert resource.identity.behavior_alias == "test_tree::TestTree"
+
+    def test_find_by_category_and_alias_with_empty_package_prefix(self):
+        """<category>/::<behavior_alias> — category + empty package."""
+        resource = BehaviorResource("tree/::test_tree::TestTree")
+        assert resource.identity.category_name == "tree"
+        assert resource.identity.package_name == PACKAGE
+        assert resource.identity.behavior_alias == "test_tree::TestTree"
+
     def test_find_using_find_method(self):
         resource = BehaviorResource.find("test_tree::TestTree", package_name=PACKAGE)
         assert resource.identity.package_name == PACKAGE
@@ -79,6 +92,19 @@ class TestTreeResourceDiscovery:
         resource = TreeResource(f"tree/{PACKAGE}::test_tree::TestTree")
         assert resource.identity.category_name == "tree"
         assert resource.identity.package_name == PACKAGE
+
+    def test_find_by_alias_with_empty_package_prefix(self):
+        """::file_stem::tree_name — empty package name, searches all packages."""
+        resource = TreeResource("::test_tree::TestTree")
+        assert resource.identity.package_name == PACKAGE
+        assert resource.identity.behavior_alias == "test_tree::TestTree"
+
+    def test_find_by_category_and_alias_with_empty_package_prefix(self):
+        """<category>/::file_stem::tree_name — category + empty package."""
+        resource = TreeResource("tree/::test_tree::TestTree")
+        assert resource.identity.category_name == "tree"
+        assert resource.identity.package_name == PACKAGE
+        assert resource.identity.behavior_alias == "test_tree::TestTree"
 
     def test_verify_tree_identity_fields(self):
         resource = TreeResource(f"{PACKAGE}::test_tree::TestTree")

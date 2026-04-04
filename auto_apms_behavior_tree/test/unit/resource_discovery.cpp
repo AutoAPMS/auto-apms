@@ -40,6 +40,23 @@ TEST(BehaviorResourceDiscovery, FindByCategoryPackageAndAlias)
   EXPECT_NO_THROW(BehaviorResource resource("tree/auto_apms_behavior_tree::test_tree::TestTree"));
 }
 
+TEST(BehaviorResourceDiscovery, FindByAliasWithEmptyPackagePrefix)
+{
+  // ::<behavior_alias> — empty package name, searches all packages
+  BehaviorResource resource("::test_tree::TestTree");
+  EXPECT_EQ(resource.getIdentity().package_name, "auto_apms_behavior_tree");
+  EXPECT_EQ(resource.getIdentity().behavior_alias, "test_tree::TestTree");
+}
+
+TEST(BehaviorResourceDiscovery, FindByCategoryAndAliasWithEmptyPackagePrefix)
+{
+  // <category_name>/::<behavior_alias> — category + empty package, narrows to specific category
+  BehaviorResource resource("tree/::test_tree::TestTree");
+  EXPECT_EQ(resource.getIdentity().category_name, "tree");
+  EXPECT_EQ(resource.getIdentity().package_name, "auto_apms_behavior_tree");
+  EXPECT_EQ(resource.getIdentity().behavior_alias, "test_tree::TestTree");
+}
+
 TEST(BehaviorResourceDiscovery, FindUsingFindMethod)
 {
   // Use the static find() method
@@ -78,6 +95,25 @@ TEST(TreeResourceDiscovery, FindFullyQualified)
 {
   // category/package::file_stem::tree_name
   EXPECT_NO_THROW(TreeResource resource("tree/auto_apms_behavior_tree::test_tree::TestTree"));
+}
+
+TEST(TreeResourceDiscovery, FindByAliasWithEmptyPackagePrefix)
+{
+  // ::file_stem::tree_name — empty package name, searches all packages
+  TreeResource resource("::test_tree::TestTree");
+  EXPECT_EQ(resource.getIdentity().package_name, "auto_apms_behavior_tree");
+  EXPECT_EQ(resource.getIdentity().file_stem, "test_tree");
+  EXPECT_EQ(resource.getIdentity().tree_name, "TestTree");
+}
+
+TEST(TreeResourceDiscovery, FindByCategoryAndAliasWithEmptyPackagePrefix)
+{
+  // <category>/::file_stem::tree_name — category + empty package
+  TreeResource resource("tree/::test_tree::TestTree");
+  EXPECT_EQ(resource.getIdentity().category_name, "tree");
+  EXPECT_EQ(resource.getIdentity().package_name, "auto_apms_behavior_tree");
+  EXPECT_EQ(resource.getIdentity().file_stem, "test_tree");
+  EXPECT_EQ(resource.getIdentity().tree_name, "TestTree");
 }
 
 TEST(TreeResourceDiscovery, VerifyTreeIdentityFields)

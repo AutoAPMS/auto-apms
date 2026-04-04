@@ -90,8 +90,11 @@ struct TreeResourceIdentity : public BehaviorResourceIdentity
  * by BehaviorResource apply uniformly:
  *
  * - `<category_name>/<package_name>::<tree_file_stem>::<tree_name>` — Fully qualified.
+ *
  * - `<package_name>::<tree_file_stem>::<tree_name>` — Omit category (searched in all categories).
- * - `<tree_file_stem>::<tree_name>` — Omit both category and package (alias-only search).
+ *
+ * - `::<tree_file_stem>::<tree_name>` — Omit both category and package (alias-only search). The leading `::` MUST be
+ * kept to avoid misinterpreting `<tree_file_stem>` as `<package_name>`.
  *
  * @note When using identity strings, both `<tree_file_stem>` and `<tree_name>` must always be specified as part of the
  * behavior alias. For convenience, the static methods findByTreeName() and findByFileStem() allow searching by just
