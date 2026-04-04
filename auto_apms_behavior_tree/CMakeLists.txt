@@ -318,15 +318,26 @@ ament_export_dependencies(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
   find_package(ament_cmake_copyright REQUIRED)
   ament_copyright()
+
+  # Register a test behavior tree for resource discovery tests.
+  auto_apms_behavior_tree_register_trees(
+    "test/resource/test_tree.xml"
+  )
 
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/build_handler.cpp"
     "test/unit/node_registration.cpp"
     "test/unit/tree_document_model_templates.cpp"
+    "test/unit/resource_discovery.cpp"
   )
   target_link_libraries(${PROJECT_NAME}_unit_tests ${PROJECT_NAME})
+
+  ament_add_pytest_test(${PROJECT_NAME}_unit_tests_py
+    "test/unit/test_resource_discovery.py"
+  )
 endif()
 
 # Plugins

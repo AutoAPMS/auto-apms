@@ -28,6 +28,17 @@ namespace auto_apms_behavior_tree::core
  * @brief Struct that encapsulates the identity string for a registered behavior tree.
  *
  * Its only purpose is to create the corresponding instance of TreeResource.
+ * 
+ * The identity string is formatted like `<package_name>::<tree_file_stem>::<tree_name>`. Since TreeResource uses the
+ * same identity resolution as BehaviorResource (where `<behavior_alias>` = `<tree_file_stem>::<tree_name>`), all
+ * short forms documented in BehaviorResourceIdentity apply. Both `<tree_file_stem>` and `<tree_name>` must always be
+ * provided.
+ *
+ * @note Because the behavior alias for tree resources contains `::`, the bare alias form
+ * `<tree_file_stem>::<tree_name>` is **ambiguous** with the `<package_name>::<behavior_alias>` form of
+ * BehaviorResourceIdentity. You must use at least `<package_name>::<tree_file_stem>::<tree_name>` when constructing
+ * a TreeResourceIdentity from a string (`<package_name>` can be empty though). For partial lookups, use
+ * TreeResource::findByTreeName() or TreeResource::findByFileStem().
  */
 struct TreeResourceIdentity : public BehaviorResourceIdentity
 {
@@ -74,40 +85,17 @@ struct TreeResourceIdentity : public BehaviorResourceIdentity
  * behavior trees and the user should only invoke the former. Registering the corresponding behavior resource
  * information is handled fully automatically for tree resources.
  *
- * The user may refer to a specific resource using an identity string that may contain the tokens `<package_name>`,
- * `<tree_file_stem>` and `<tree_name>` separated by `::` in that order. Depending on the number of registered
- * resources, it might be convenient to use shorter, less precise signatures. Additionally, if the delimiter `::` is not
- * present, the string is assumed to be the stem of a behavior tree file `<tree_file_stem>`. All possible identity
- * strings are listed below:
+ * TreeResource inherits from BehaviorResource and does not define any additional identity resolution logic. The
+ * underlying behavior alias for a tree resource is `<tree_file_stem>::<tree_name>`, so all identity formats supported
+ * by BehaviorResource apply uniformly:
  *
- * - `<package_name>::<tree_file_stem>::<tree_name>`
+ * - `<category_name>/<package_name>::<tree_file_stem>::<tree_name>` — Fully qualified.
+ * - `<package_name>::<tree_file_stem>::<tree_name>` — Omit category (searched in all categories).
+ * - `<tree_file_stem>::<tree_name>` — Omit both category and package (alias-only search).
  *
- *   Fully qualified identity string of a specific behavior tree.
- *
- * - `::<tree_file_stem>::<tree_name>`
- *
- *   Try to find the resource by searching for a tree with name `<tree_name>` in a file with stem `<tree_file_stem>`
- *   considering all packages.
- *
- * - `<package_name>::::<tree_name>`
- *
- *   Try to find a tree with name `<tree_name>` within the resources registered by `<package_name>`.
- *
- * - `::::<tree_name>`
- *
- *   Try to find the resource by searching for a tree with name `<tree_name>` considering all packages.
- *
- * - `<package_name>::<tree_file_stem>::`
- *
- *   Try to find a file with stem `<tree_file_stem>` within the resources registered by `<package_name>`.
- *
- * - `::<tree_file_stem>::` or `<tree_file_stem>`
- *
- *   Try to find the resource by searching for a file with stem `<tree_file_stem>` considering all packages. Here you
- *   may conveniently omit the `::` delimiter, since this is the most common way for searching for a resource.
- *
- * @note The delimiter `::` must be kept when tokens are omitted, except when searching for resources using only the
- * file stem.
+ * @note When using identity strings, both `<tree_file_stem>` and `<tree_name>` must always be specified as part of the
+ * behavior alias. For convenience, the static methods findByTreeName() and findByFileStem() allow searching by just
+ * one component without requiring the full alias.
  *
  * ## Usage
  *
@@ -130,7 +118,7 @@ struct TreeResourceIdentity : public BehaviorResourceIdentity
  * using namespace auto_apms_behavior_tree;
  *
  * // For example, use the fully qualified tree resource identity signature
- * const std::string identity_string = "my_package::my_behavior_tree::MyTreeName";
+ * const std::string identity_string = "my_package::my_tree_file::MyBehaviorTree";
  *
  * // You may use the proxy class for a tree resource identity
  * core::TreeResourceIdentity identity(identity_string);
@@ -141,13 +129,13 @@ struct TreeResourceIdentity : public BehaviorResourceIdentity
  *
  * // The resource object may for example be used with TreeDocument
  * core::TreeDocument doc;
- * doc.mergeResource(resource);  // Add "MyTreeName" to the document
+ * doc.mergeResource(resource);  // Add "MyBehaviorTree" to the document
  *
  * // This also works, so creating a resource object is not strictly necessary
  * doc.mergeResource(identity_string)
  *
  * // The simplest approach is this
- * doc.mergeResource("my_package::my_behavior_tree::MyTreeName");
+ * doc.mergeResource("my_package::my_tree_file::MyBehaviorTree");
  * ```
  *
  * @sa BehaviorResource
@@ -187,35 +175,6 @@ public:
   TreeResource(const char * search_identity);
 
   /**
-   * @brief Find an installed behavior tree resource using a specific behavior tree name.
-   *
-   * This factory method acts equivalently to passing an identity string formatted like `<package_name>::::<tree_name>`
-   * to the constructor.
-   * @param tree_name Name of the desired behavior tree.
-   * @param package_name Optional package name provided to narrow down the search. If empty, search in all installed
-   * packages.
-   * @return Corresponding tree resource object.
-   * @throws auto_apms_util::exceptions::ResourceError if the corresponding behavior tree cannot be found using the
-   * given arguments.
-   */
-  static TreeResource findByTreeName(const std::string & tree_name, const std::string & package_name = "");
-
-  /**
-   * @brief Find an installed behavior tree resource using a specific behavior tree XML file stem.
-   *
-   * This factory method acts equivalently to passing an identity string formatted like
-   * `<package_name>::<tree_file_stem>::` to the constructor.
-   * @param file_stem Stem of the desired behavior tree file (the stem of a file is the file name without the
-   * extension).
-   * @param package_name Optional package name provided to narrow down the search. If empty, search in all installed
-   * packages.
-   * @return Corresponding tree resource object.
-   * @throws auto_apms_util::exceptions::ResourceError if the corresponding behavior tree cannot be found using the
-   * given arguments.
-   */
-  static TreeResource findByFileStem(const std::string & file_stem, const std::string & package_name = "");
-
-  /**
    * @brief Determine if this behavior tree resource specifies a root tree.
    *
    * The name of the root tree is determined as follows:
@@ -251,6 +210,34 @@ public:
    * @return Tree resource identity string.
    */
   TreeResourceIdentity createIdentityForTree(const std::string & tree_name = "") const;
+
+  /**
+   * @brief Find an installed behavior tree resource using a specific behavior tree name.
+   *
+   * This method searches the ament resource index for a tree resource whose `<tree_name>` component matches
+   * @p tree_name. Unlike the identity-string constructor, this accepts just the tree name without requiring
+   * `<tree_file_stem>`.
+   *
+   * @param tree_name The name of the behavior tree.
+   * @param package_name Optional package name to narrow the search. If empty, all packages are searched.
+   * @return Corresponding tree resource object.
+   * @throws auto_apms_util::exceptions::ResourceError if no matching resource is found or if the match is ambiguous.
+   */
+  static TreeResource findByTreeName(const std::string & tree_name, const std::string & package_name = "");
+
+  /**
+   * @brief Find an installed behavior tree resource using an XML file stem.
+   *
+   * This method searches the ament resource index for a tree resource whose `<tree_file_stem>` component matches
+   * @p file_stem. Unlike the identity-string constructor, this accepts just the file stem without requiring
+   * `<tree_name>`.
+   *
+   * @param file_stem The stem (filename without extension) of the behavior tree XML file.
+   * @param package_name Optional package name to narrow the search. If empty, all packages are searched.
+   * @return Corresponding tree resource object.
+   * @throws auto_apms_util::exceptions::ResourceError if no matching resource is found or if the match is ambiguous.
+   */
+  static TreeResource findByFileStem(const std::string & file_stem, const std::string & package_name = "");
 
 private:
   std::string doc_root_tree_name_;

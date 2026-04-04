@@ -687,13 +687,19 @@ class TreeResourceIdentity(BehaviorResourceIdentity):
     Struct that encapsulates the identity string for a registered behavior tree.
 
     This is the Python equivalent of auto_apms_behavior_tree::core::TreeResourceIdentity.
+
+    The identity string is formatted like ``<package_name>::<tree_file_stem>::<tree_name>``.
+    Since TreeResource uses the same identity resolution as BehaviorResource
+    (where ``<behavior_alias>`` = ``<tree_file_stem>::<tree_name>``), all standard short forms apply.
+    Both ``<tree_file_stem>`` and ``<tree_name>`` must always be provided.
     """
 
     def __init__(self, identity: str = None):
         """
         Initialize a tree resource identity from an identity string.
 
-        Identity must be formatted like `<package_name>::<tree_file_stem>::<tree_name>`.
+        Identity must be formatted like ``<package_name>::<tree_file_stem>::<tree_name>``.
+        Both ``<tree_file_stem>`` and ``<tree_name>`` must be provided.
 
         Args:
             identity: Identity string for a specific behavior tree resource, or None for manual creation.
@@ -711,18 +717,17 @@ class TreeResourceIdentity(BehaviorResourceIdentity):
         # Parse the behavior alias part to extract file_stem and tree_name
         tokens = self.behavior_alias.split(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP)
 
-        # If only a single token is given, assume it's file_stem
-        if len(tokens) > 1:
+        if len(tokens) == 2:
             self.file_stem = tokens[0]
             self.tree_name = tokens[1]
-        elif len(tokens) > 0:
+        elif len(tokens) == 1:
             self.file_stem = tokens[0]
             self.tree_name = ""
 
-        if not self.file_stem and not self.tree_name:
+        if not self.file_stem or not self.tree_name:
             raise ResourceIdentityFormatError(
                 f"Behavior tree resource identity string '{identity}' is invalid. "
-                "It's not allowed to omit both <tree_file_stem> and <tree_name>."
+                "Both <tree_file_stem> and <tree_name> must be provided."
             )
 
 
@@ -731,6 +736,13 @@ class TreeResource(BehaviorResource):
     Class containing behavior tree resource data.
 
     This is the Python equivalent of auto_apms_behavior_tree::core::TreeResource.
+
+    TreeResource inherits from BehaviorResource and uses the same identity resolution for its constructor.
+    The underlying behavior alias for a tree resource is ``<tree_file_stem>::<tree_name>``,
+    so all identity formats supported by BehaviorResource apply uniformly.
+
+    For convenience, the static methods :meth:`find_by_tree_name` and :meth:`find_by_file_stem` allow searching
+    by just one component of the alias without requiring the full ``<tree_file_stem>::<tree_name>``.
     """
 
     def __init__(self, identity: TreeResourceIdentity | str):
@@ -759,38 +771,146 @@ class TreeResource(BehaviorResource):
         """
         Find an installed behavior tree resource using a specific behavior tree name.
 
+        This method searches the ament resource index for a tree resource whose ``<tree_name>`` component matches.
+        Unlike the identity-string constructor, this accepts just the tree name without requiring ``<tree_file_stem>``.
+
         Args:
-            tree_name (str): The name of the behavior tree.
-            package_name (str, optional): The name of the package to search in. Default: Search in all installed packages.
+            tree_name: The name of the behavior tree.
+            package_name: Optional package name to narrow the search. If empty, all packages are searched.
 
         Returns:
-            TreeResource: The matching behavior tree resource.
+            The matching behavior tree resource.
+
+        Raises:
+            ResourceError: If no matching resource is found or if the match is ambiguous.
         """
-        return TreeResource(
-            package_name
-            + _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP
-            + _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP
-            + tree_name
-        )
+        if not tree_name:
+            raise ResourceError("Cannot find tree resource: tree_name must not be empty.")
+
+        search_packages: set[str] = set()
+        if package_name:
+            search_packages.add(package_name)
+        else:
+            search_packages = get_packages_with_resource_type(
+                _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR
+            )
+
+        match_identity = None
+        matching_count = 0
+        for pkg in search_packages:
+            try:
+                content, _ = ament_index_python.get_resource(
+                    _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, pkg
+                )
+            except (LookupError, ament_index_python.InvalidResourceNameError):
+                continue
+
+            for line in content.splitlines():
+                parts = line.split(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_FIELD_PER_LINE_SEP)
+                if len(parts) != 6:
+                    continue
+
+                found_category = parts[0]
+                found_alias = parts[1]
+
+                if found_category != _AUTO_APMS_BEHAVIOR_TREE_CORE__DEFAULT_BEHAVIOR_CATEGORY__TREE:
+                    continue
+
+                alias_tokens = found_alias.split(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP)
+                if len(alias_tokens) != 2:
+                    continue
+
+                if alias_tokens[1] == tree_name:
+                    matching_count += 1
+                    match_identity = TreeResourceIdentity()
+                    match_identity.category_name = found_category
+                    match_identity.package_name = pkg
+                    match_identity.behavior_alias = found_alias
+                    match_identity.file_stem = alias_tokens[0]
+                    match_identity.tree_name = alias_tokens[1]
+
+        if matching_count == 0:
+            suffix = "." if not package_name else f" in package '{package_name}'."
+            raise ResourceError(f"No tree resource with tree name '{tree_name}' was found{suffix}")
+        if matching_count > 1:
+            raise ResourceError(
+                f"Tree name '{tree_name}' is ambiguous ({matching_count} matches). You must be more precise."
+            )
+
+        return TreeResource(match_identity)
 
     @staticmethod
     def find_by_file_stem(file_stem: str, package_name: str = "") -> "TreeResource":
         """
-        Find an installed behavior tree resource using a specific behavior tree XML file stem.
+        Find an installed behavior tree resource using an XML file stem.
+
+        This method searches the ament resource index for a tree resource whose ``<tree_file_stem>`` component matches.
+        Unlike the identity-string constructor, this accepts just the file stem without requiring ``<tree_name>``.
 
         Args:
-            file_stem (str): The file stem of the behavior tree XML file.
-            package_name (str, optional): The name of the package to search in. Default: Search in all installed packages.
+            file_stem: The stem (filename without extension) of the behavior tree XML file.
+            package_name: Optional package name to narrow the search. If empty, all packages are searched.
 
         Returns:
-            TreeResource: The matching behavior tree resource.
+            The matching behavior tree resource.
+
+        Raises:
+            ResourceError: If no matching resource is found or if the match is ambiguous.
         """
-        return TreeResource(
-            package_name
-            + _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP
-            + file_stem
-            + _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP
-        )
+        if not file_stem:
+            raise ResourceError("Cannot find tree resource: file_stem must not be empty.")
+
+        search_packages: set[str] = set()
+        if package_name:
+            search_packages.add(package_name)
+        else:
+            search_packages = get_packages_with_resource_type(
+                _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR
+            )
+
+        match_identity = None
+        matching_count = 0
+        for pkg in search_packages:
+            try:
+                content, _ = ament_index_python.get_resource(
+                    _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, pkg
+                )
+            except (LookupError, ament_index_python.InvalidResourceNameError):
+                continue
+
+            for line in content.splitlines():
+                parts = line.split(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_FIELD_PER_LINE_SEP)
+                if len(parts) != 6:
+                    continue
+
+                found_category = parts[0]
+                found_alias = parts[1]
+
+                if found_category != _AUTO_APMS_BEHAVIOR_TREE_CORE__DEFAULT_BEHAVIOR_CATEGORY__TREE:
+                    continue
+
+                alias_tokens = found_alias.split(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP)
+                if len(alias_tokens) != 2:
+                    continue
+
+                if alias_tokens[0] == file_stem:
+                    matching_count += 1
+                    match_identity = TreeResourceIdentity()
+                    match_identity.category_name = found_category
+                    match_identity.package_name = pkg
+                    match_identity.behavior_alias = found_alias
+                    match_identity.file_stem = alias_tokens[0]
+                    match_identity.tree_name = alias_tokens[1]
+
+        if matching_count == 0:
+            suffix = "." if not package_name else f" in package '{package_name}'."
+            raise ResourceError(f"No tree resource with file stem '{file_stem}' was found{suffix}")
+        if matching_count > 1:
+            raise ResourceError(
+                f"File stem '{file_stem}' is ambiguous ({matching_count} matches). You must be more precise."
+            )
+
+        return TreeResource(match_identity)
 
 
 def get_node_manifest_resource_identities(exclude_packages: set[str] = None) -> set[NodeManifestResourceIdentity]:

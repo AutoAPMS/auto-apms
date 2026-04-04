@@ -31,10 +31,51 @@
 namespace auto_apms_behavior_tree::core
 {
 
+// clang-format off
+
 /**
  * @brief Struct that encapsulates the identity string for a registered behavior.
+ *
+ * A behavior resource identity string consists of three optional tokens:
+ *
+ * - `<category_name>` — The category of the behavior resource (e.g. `"tree"`, `"default"`).
+ * 
+ * - `<package_name>` — The ROS 2 package that registered the behavior resource.
+ * 
+ * - `<behavior_alias>` — The alias that uniquely identifies the behavior within its package.
+ *
+ * ## Supported identity formats
+ *
+ * Several short forms are supported to allow omitting tokens that are not needed for disambiguation. The `::` separator
+ * is always used between `<package_name>` and `<behavior_alias>`, and `/` is used between `<category_name>` and the
+ * rest of the identity.
+ *
+ * | Format | Description |
+ * |---|---|
+ * | `<category_name>/<package_name>::<behavior_alias>` | Fully qualified: category, package, and alias. |
+ * | `<package_name>::<behavior_alias>` | Omit category — searches across all categories. Equivalent to `/<package_name>::<behavior_alias>`. |
+ * | `::<behavior_alias>` | Omit both category and package — searches across all packages and categories. |
+ * | `<behavior_alias>` | Same as `::<behavior_alias>`, but only when the alias itself does not contain `::`. |
+ * | `<category_name>/::<behavior_alias>` | With category, but without package — narrows search to a specific category across all packages. |
+ *
+ * @note When the `<behavior_alias>` itself contains `::` (as is the case with TreeResourceIdentity where the alias is
+ * `<tree_file_stem>::<tree_name>`), the bare alias form is **ambiguous** with the `<package_name>::<behavior_alias>`
+ * form. In that case, you **must** provide the **first** `::` which separates the package name (which can be empty though) to avoid misinterpretation.
+ *
+ * ## Parsing rules
+ *
+ * 1. If the identity contains `/`, the substring before the **first** `/` is the `<category_name>` and everything
+ *    after is processed as `<package_name>::<behavior_alias>`.
+ * 
+ * 2. If the remaining string contains `::`, the substring before the **first** `::` is the `<package_name>` and
+ *    everything after is the `<behavior_alias>`.
+ * 
+ * 3. If no `::` is found, the entire remaining string is treated as the `<behavior_alias>` (package is empty).
+ * 
+ * 4. A `default_category` may be provided to fill `<category_name>` when it is omitted or set to `"default"`.
  */
 struct BehaviorResourceIdentity
+// clang-format on
 {
   /**
    * @brief Constructor of a behavior resource identity object.
@@ -303,8 +344,9 @@ inline BehaviorResourceTemplate<T, U>::BehaviorResourceTemplate(const Identity &
   for (const auto & p : search_packages) {
     std::string content;
     std::string base_path;
-    if (ament_index_cpp::get_resource(
-          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p, content, &base_path)) {
+    if (
+      ament_index_cpp::get_resource(
+        _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p, content, &base_path)) {
       for (const auto & line :
            auto_apms_util::splitString(content, _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_LINE_SEP)) {
         const std::vector<std::string> parts = auto_apms_util::splitString(
