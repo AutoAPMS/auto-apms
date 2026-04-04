@@ -39,9 +39,9 @@ namespace auto_apms_behavior_tree::core
  * A behavior resource identity string consists of three optional tokens:
  *
  * - `<category_name>` — The category of the behavior resource (e.g. `"tree"`, `"default"`).
- * 
+ *
  * - `<package_name>` — The ROS 2 package that registered the behavior resource.
- * 
+ *
  * - `<behavior_alias>` — The alias that uniquely identifies the behavior within its package.
  *
  * ## Supported identity formats
@@ -66,12 +66,12 @@ namespace auto_apms_behavior_tree::core
  *
  * 1. If the identity contains `/`, the substring before the **first** `/` is the `<category_name>` and everything
  *    after is processed as `<package_name>::<behavior_alias>`.
- * 
+ *
  * 2. If the remaining string contains `::`, the substring before the **first** `::` is the `<package_name>` and
  *    everything after is the `<behavior_alias>`.
- * 
+ *
  * 3. If no `::` is found, the entire remaining string is treated as the `<behavior_alias>` (package is empty).
- * 
+ *
  * 4. A `default_category` may be provided to fill `<category_name>` when it is omitted or set to `"default"`.
  */
 struct BehaviorResourceIdentity
@@ -344,9 +344,8 @@ inline BehaviorResourceTemplate<T, U>::BehaviorResourceTemplate(const Identity &
   for (const auto & p : search_packages) {
     std::string content;
     std::string base_path;
-    if (
-      ament_index_cpp::get_resource(
-        _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p, content, &base_path)) {
+    if (ament_index_cpp::get_resource(
+          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p, content, &base_path)) {
       for (const auto & line :
            auto_apms_util::splitString(content, _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_LINE_SEP)) {
         const std::vector<std::string> parts = auto_apms_util::splitString(

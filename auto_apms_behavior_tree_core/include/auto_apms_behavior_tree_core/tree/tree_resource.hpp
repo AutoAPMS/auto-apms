@@ -28,7 +28,7 @@ namespace auto_apms_behavior_tree::core
  * @brief Struct that encapsulates the identity string for a registered behavior tree.
  *
  * Its only purpose is to create the corresponding instance of TreeResource.
- * 
+ *
  * The identity string is formatted like `<package_name>::<tree_file_stem>::<tree_name>`. Since TreeResource uses the
  * same identity resolution as BehaviorResource (where `<behavior_alias>` = `<tree_file_stem>::<tree_name>`), all
  * short forms documented in BehaviorResourceIdentity apply. Both `<tree_file_stem>` and `<tree_name>` must always be

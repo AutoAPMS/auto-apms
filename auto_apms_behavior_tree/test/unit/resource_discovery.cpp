@@ -107,7 +107,9 @@ TEST(TreeResourceDiscovery, PartialIdentityTreeNameOnlyThrows)
 
 TEST(TreeResourceDiscovery, PartialIdentityMissingTreeNameThrows)
 {
-  EXPECT_THROW(TreeResource resource("auto_apms_behavior_tree::test_tree::"), auto_apms_util::exceptions::ResourceIdentityFormatError);
+  EXPECT_THROW(
+    TreeResource resource("auto_apms_behavior_tree::test_tree::"),
+    auto_apms_util::exceptions::ResourceIdentityFormatError);
 }
 
 TEST(TreeResourceDiscovery, FindByTreeNameMethod)
