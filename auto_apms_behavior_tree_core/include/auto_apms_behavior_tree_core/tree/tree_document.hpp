@@ -1436,9 +1436,11 @@ public:
 
   /**
    * @brief Clear this document and reset it to its initial state.
+   * @param unregister_nodes Set to `true` if all registered nodes should be unregistered from the behavior tree
+   * factory. If set to `false`, the current registration state is kept.
    * @return Modified tree document.
    */
-  TreeDocument & reset();
+  TreeDocument & reset(bool unregister_nodes = true);
 
 private:
   template <typename ReturnT, typename DocumentT>

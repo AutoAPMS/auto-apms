@@ -71,17 +71,27 @@ public:
   inline static const std::string PARAM_VALUE_NO_BUILD_HANDLER = "none";
 
   /**
-   * @brief Constructor.
+   * @brief Constructor using an existing ROS 2 node.
+   *
+   * This allows embedding the executor inside another node (e.g. via composition) without creating a
+   * separate `rclcpp::Node` instance.
+   * @param node_ptr Shared pointer to the ROS 2 node to use.
+   * @param options Executor options.
+   */
+  GenericTreeExecutorNode(rclcpp::Node::SharedPtr node_ptr, Options options);
+
+  /**
+   * @brief Constructor which creates a new ROS 2 node.
    * @param name Name of the `rclcpp::Node`.
    * @param options Executor options.
    */
   GenericTreeExecutorNode(const std::string & name, Options options);
 
   /**
-   * @brief Constructor with default options.
-   * @param options ROS 2 node options.
+   * @brief Constructor with default executor options.
+   * @param name Name of the `rclcpp::Node`.
    */
-  explicit GenericTreeExecutorNode(rclcpp::NodeOptions options);
+  GenericTreeExecutorNode(const std::string & name);
 
   virtual ~GenericTreeExecutorNode() override = default;
 

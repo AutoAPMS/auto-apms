@@ -25,10 +25,13 @@
 namespace auto_apms_behavior_tree
 {
 
-TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string & start_action_name, Options options)
+TreeExecutorNode::TreeExecutorNode(
+  rclcpp::Node::SharedPtr node_ptr, const std::string & start_action_name, Options options)
 : ActionBasedTreeExecutorNode<auto_apms_interfaces::action::StartTreeExecutor>(
-    name,
-    start_action_name.empty() ? name + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX : start_action_name,
+    node_ptr,
+    start_action_name.empty()
+      ? std::string(node_ptr->get_name()) + _AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_START_ACTION_NAME_SUFFIX
+      : start_action_name,
     options)
 {
   // Make sure ROS arguments are removed. When using rclcpp_components, this is typically not the case.
@@ -53,6 +56,11 @@ TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string &
     // Start tree execution with the build handler request being the first relevant argument
     startExecution(makeTreeConstructor(relevant_args[0]), initial_params.tick_rate, initial_params.groot2_port);
   }
+}
+
+TreeExecutorNode::TreeExecutorNode(const std::string & name, const std::string & start_action_name, Options options)
+: TreeExecutorNode(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions()), start_action_name, options)
+{
 }
 
 TreeExecutorNode::TreeExecutorNode(const std::string & name, Options options) : TreeExecutorNode(name, "", options) {}

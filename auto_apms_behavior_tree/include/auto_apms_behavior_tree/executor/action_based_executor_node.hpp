@@ -53,7 +53,15 @@ public:
   using TriggerGoalHandle = rclcpp_action::ServerGoalHandle<ActionT>;
 
   /**
-   * @brief Constructor.
+   * @brief Constructor using an existing ROS 2 node.
+   * @param node_ptr Shared pointer to the ROS 2 node to use.
+   * @param action_name Name for the trigger action server.
+   * @param options Executor options.
+   */
+  ActionBasedTreeExecutorNode(rclcpp::Node::SharedPtr node_ptr, const std::string & action_name, Options options);
+
+  /**
+   * @brief Constructor which creates a new ROS 2 node.
    * @param name Name of the `rclcpp::Node`.
    * @param action_name Name for the trigger action server.
    * @param options Executor options.
@@ -61,13 +69,11 @@ public:
   ActionBasedTreeExecutorNode(const std::string & name, const std::string & action_name, Options options);
 
   /**
-   * @brief Constructor with default options.
+   * @brief Constructor with default executor options.
    * @param name Name of the `rclcpp::Node`.
    * @param action_name Name for the trigger action server.
-   * @param ros_options ROS 2 node options.
    */
-  ActionBasedTreeExecutorNode(
-    const std::string & name, const std::string & action_name, rclcpp::NodeOptions ros_options = rclcpp::NodeOptions());
+  ActionBasedTreeExecutorNode(const std::string & name, const std::string & action_name);
 
   virtual ~ActionBasedTreeExecutorNode() override = default;
 
@@ -142,8 +148,8 @@ private:
 
 template <typename ActionT>
 ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
-  const std::string & name, const std::string & action_name, Options options)
-: GenericTreeExecutorNode(name, options), trigger_action_context_(logger_)
+  rclcpp::Node::SharedPtr node_ptr, const std::string & action_name, Options options)
+: GenericTreeExecutorNode(node_ptr, options), trigger_action_context_(logger_)
 {
   using namespace std::placeholders;
   trigger_action_ptr_ = rclcpp_action::create_server<ActionT>(
@@ -154,8 +160,15 @@ ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
 
 template <typename ActionT>
 ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
-  const std::string & name, const std::string & action_name, rclcpp::NodeOptions ros_options)
-: ActionBasedTreeExecutorNode(name, action_name, Options(ros_options))
+  const std::string & name, const std::string & action_name, Options options)
+: ActionBasedTreeExecutorNode(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions()), action_name, options)
+{
+}
+
+template <typename ActionT>
+ActionBasedTreeExecutorNode<ActionT>::ActionBasedTreeExecutorNode(
+  const std::string & name, const std::string & action_name)
+: ActionBasedTreeExecutorNode(name, action_name, Options(rclcpp::NodeOptions()))
 {
 }
 

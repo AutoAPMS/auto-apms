@@ -59,7 +59,16 @@ class TreeExecutorNode : public ActionBasedTreeExecutorNode<auto_apms_interfaces
 {
 public:
   /**
-   * @brief Constructor allowing to specify a custom node name and executor options.
+   * @brief Constructor using an existing ROS 2 node.
+   * @param node_ptr Shared pointer to the ROS 2 node to use.
+   * @param start_action_name Name for the StartTreeExecutor action server. If empty, defaults to `<node_name>/start`.
+   * @param options Executor specific options. Simply pass a `rclcpp::NodeOptions` object to use the default
+   * options.
+   */
+  TreeExecutorNode(rclcpp::Node::SharedPtr node_ptr, const std::string & start_action_name, Options options);
+
+  /**
+   * @brief Constructor creating a new ROS 2 node allowing to specify a custom node name and executor options.
    * @param name Default name of the `rclcpp::Node`.
    * @param start_action_name Name for the StartTreeExecutor action server. If empty, defaults to `<node_name>/start`.
    * @param options Executor specific options. Simply pass a `rclcpp::NodeOptions` object to use the default
@@ -77,9 +86,9 @@ public:
 
   /**
    * @brief Constructor populating both the node's name and the executor options with the default.
-   * @param options Options forwarded to rclcpp::Node constructor.
+   * @param ros_options Options forwarded to rclcpp::Node constructor.
    */
-  explicit TreeExecutorNode(rclcpp::NodeOptions ros_options);
+  explicit TreeExecutorNode(rclcpp::NodeOptions ros_options = rclcpp::NodeOptions());
 
   virtual ~TreeExecutorNode() override = default;
 

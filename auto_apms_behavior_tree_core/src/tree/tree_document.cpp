@@ -1414,7 +1414,7 @@ void TreeDocument::writeToFile(const std::string & path) const
   }
 }
 
-TreeDocument & TreeDocument::reset()
+TreeDocument & TreeDocument::reset(bool unregister_nodes)
 {
   // Reset XML document
   Clear();
@@ -1422,11 +1422,13 @@ TreeDocument & TreeDocument::reset()
   root_ele->SetAttribute(TreeDocument::BTCPP_FORMAT_ATTRIBUTE_NAME, format_version_.c_str());
   InsertFirstChild(root_ele);
 
-  // Reset node registrations
-  for (const auto & node_name : getRegisteredNodeNames(false)) {
-    factory_.unregisterBuilder(node_name);
+  // Reset node registration state if desired
+  if (unregister_nodes) {
+    for (const auto & node_name : getRegisteredNodeNames(false)) {
+      factory_.unregisterBuilder(node_name);
+    }
+    registered_nodes_manifest_ = NodeManifest();
   }
-  registered_nodes_manifest_ = NodeManifest();
   return *this;
 }
 

@@ -28,10 +28,8 @@
 namespace auto_apms_behavior_tree
 {
 
-GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Options options)
-: TreeExecutorBase(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions())),
-  executor_options_(options),
-  executor_param_listener_(node_ptr_)
+GenericTreeExecutorNode::GenericTreeExecutorNode(rclcpp::Node::SharedPtr node_ptr, Options options)
+: TreeExecutorBase(node_ptr), executor_options_(options), executor_param_listener_(node_ptr_)
 {
   // Remove all parameters from overrides that are not supported
   rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
@@ -169,10 +167,12 @@ GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Optio
   }
 }
 
-GenericTreeExecutorNode::GenericTreeExecutorNode(rclcpp::NodeOptions options)
-: GenericTreeExecutorNode("event_based_tree_executor", Options(options))
+GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name, Options options)
+: GenericTreeExecutorNode(std::make_shared<rclcpp::Node>(name, options.getROSNodeOptions()), options)
 {
 }
+
+GenericTreeExecutorNode::GenericTreeExecutorNode(const std::string & name) : GenericTreeExecutorNode(name, Options()) {}
 
 void GenericTreeExecutorNode::preBuild(
   core::TreeBuilder & /*builder*/, const std::string & /*build_request*/, const std::string & /*entry_point*/,
