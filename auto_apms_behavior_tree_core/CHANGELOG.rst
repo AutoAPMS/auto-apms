@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.5.1 (2026-04-07)
+------------------
 * feature: add executor ctor accepting a shared node pointer
 * Add tests for alias-only behavior resource lookup
 * Fix linting
