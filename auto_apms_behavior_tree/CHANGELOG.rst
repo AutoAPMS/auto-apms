@@ -2,6 +2,15 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* feature: add executor ctor accepting a shared node pointer
+* Add tests for alias-only behavior resource lookup
+* Fix linting
+* Fix resource aliasing/lookup and shorthanding formats
+* feature: allow encoding inital blackboard in entry point
+* Contributors: Robin Müller
+
 1.5.0 (2026-03-06)
 ------------------
 * Merge pull request `#18 <https://github.com/AutoAPMS/auto-apms/issues/18>`_ from AutoAPMS/feature/event-based-executor

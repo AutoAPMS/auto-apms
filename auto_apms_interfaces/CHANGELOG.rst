@@ -2,6 +2,9 @@
 Changelog for package auto_apms_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.5.0 (2026-03-06)
 ------------------
 * Merge for integrating small convencience test scripts for manual use

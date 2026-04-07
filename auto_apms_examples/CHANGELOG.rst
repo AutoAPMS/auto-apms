@@ -2,6 +2,11 @@
 Changelog for package auto_apms_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* feature: allow encoding inital blackboard in entry point
+* Contributors: Robin Müller
+
 1.5.0 (2026-03-06)
 ------------------
 * fix: introduce namespaced shared library names to avoid name clashes in merged installs

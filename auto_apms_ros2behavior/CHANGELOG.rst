@@ -2,6 +2,9 @@
 Changelog for package auto_apms_ros2behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.5.0 (2026-03-06)
 ------------------
 * feature: allow for skipping the executor node configurations when using ros2 behavior send

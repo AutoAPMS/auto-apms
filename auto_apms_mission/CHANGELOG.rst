@@ -2,6 +2,9 @@
 Changelog for package auto_apms_mission
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.5.0 (2026-03-06)
 ------------------
 * Merge pull request `#18 <https://github.com/AutoAPMS/auto-apms/issues/18>`_ from AutoAPMS/feature/event-based-executor
