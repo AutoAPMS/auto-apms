@@ -130,3 +130,7 @@ ${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_TRIGGER}:
 ${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_POSE}:
   class_name: ${PROJECT_NAME}::PublishPose
   description: "Publishes a geometry_msgs/PoseStamped message with position and orientation"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_TWIST}:
+  class_name: ${PROJECT_NAME}::PublishTwist
+  description: "Publishes a geometry_msgs/TwistStamped message with linear and angular velocity"

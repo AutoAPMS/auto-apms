@@ -75,6 +75,7 @@ set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_BOOL "SetBool")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_EMPTY "SetEmpty")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_TRIGGER "SetTrigger")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_POSE "PublishPose")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_TWIST "PublishTwist")
 
 #
 # ------------ Library --------------
@@ -171,6 +172,7 @@ add_library(${PROJECT_NAME}_behavior_tree_nodes SHARED
   "src/node/set_empty.cpp"
   "src/node/set_trigger.cpp"
   "src/node/publish_pose.cpp"
+  "src/node/publish_twist.cpp"
 )
 # Make parameter util available for standard nodes too, but don't include anything that's not also been added to the sources
 target_include_directories(${PROJECT_NAME}_behavior_tree_nodes PRIVATE
@@ -222,6 +224,7 @@ auto_apms_behavior_tree_register_nodes(${PROJECT_NAME}_behavior_tree_nodes
   "${PROJECT_NAME}::SetEmpty"
   "${PROJECT_NAME}::SetTrigger"
   "${PROJECT_NAME}::PublishPose"
+  "${PROJECT_NAME}::PublishTwist"
   NODE_MANIFEST
   "config/standard_nodes.yaml.in"
   NODE_MANIFEST_ALIAS
