@@ -124,6 +124,7 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
 
   # Replace potential CMake variable names with their values inside the manifest yaml file
   set(_create_node_manifest_input_file_paths__absolute "")
+  set(_input_manifest_file_index 0)
   foreach(_input_manifest_file_path ${_generate_node_metadata__UNPARSED_ARGUMENTS})
     get_filename_component(_input_manifest_file_path__source "${_input_manifest_file_path}" REALPATH)
     if(NOT EXISTS "${_input_manifest_file_path__source}")
@@ -133,9 +134,12 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
       )
     endif()
     get_filename_component(_input_manifest_file_stem "${_input_manifest_file_path}" NAME_WE)
-    set(_path "${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}/create_node_manifest_inputs__${metadata_id}/${_input_manifest_file_stem}.yaml")
+    # Prefix the staging filename with a unique index to avoid collisions when multiple packages
+    # install manifest files with the same name (e.g. node_manifest_behavior_tree_nodes.yaml).
+    set(_path "${_AUTO_APMS_BEHAVIOR_TREE_CORE__BUILD_DIR_ABSOLUTE}/create_node_manifest_inputs__${metadata_id}/package${_input_manifest_file_index}__${_input_manifest_file_stem}.yaml")
     configure_file("${_input_manifest_file_path__source}" "${_path}")
     list(APPEND _create_node_manifest_input_file_paths__absolute "${_path}")
+    math(EXPR _input_manifest_file_index "${_input_manifest_file_index} + 1")
   endforeach()
 
   set(_generated_node_manifest_rel_dir__install "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_DIR_RELATIVE__METADATA}")
