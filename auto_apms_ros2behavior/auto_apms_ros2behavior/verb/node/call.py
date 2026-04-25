@@ -60,6 +60,12 @@ class CallVerb(VerbExtension):
             metavar=logging_level_names,
         )
         logging_arg.completer = PrefixFilteredChoicesCompleter(logging_level_names)
+        parser.add_argument(
+            "--namespace",
+            "-n",
+            type=str,
+            help="ROS 2 node namespace for the tree node",
+        )
 
     def main(self, *, args):
         registration_options = args.manifest.node_manifest.get_node_registration_options(args.node_name)
@@ -69,4 +75,5 @@ class CallVerb(VerbExtension):
             registration_options=registration_options,
             port_values=parse_key_value_args(args.port_values),
             logging_level=args.logging,
+            namespace=args.namespace,
         )

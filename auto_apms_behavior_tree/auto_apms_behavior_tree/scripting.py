@@ -342,6 +342,7 @@ def sync_run_generic_behavior_locally(
     static_params: dict = None,
     blackboard_params: dict = None,
     logging_level: LoggingSeverity = None,
+    namespace: str | None = None,
 ):
     """
     Execute a behavior locally using the run_behavior executable.
@@ -356,6 +357,7 @@ def sync_run_generic_behavior_locally(
         static_params: Static parameters to set on the executor
         blackboard_params: Blackboard parameters to set on the executor
         logging_level: Logger level to set on the executor
+        namespace: Optional ROS 2 node namespace to run the executor under
     """
     required_package = "auto_apms_behavior_tree"
     required_command = "run_behavior"
@@ -371,6 +373,9 @@ def sync_run_generic_behavior_locally(
     def add_ros_argument(arg_name: str, arg_tuple: tuple[str, str]):
         argv.append(f"--{arg_name}")
         argv.append(f"{arg_tuple[0]}:={arg_tuple[1]}")
+
+    if namespace:
+        add_ros_argument("remap", ("__ns", namespace if namespace.startswith("/") else f"/{namespace}"))
 
     if logging_level:
         add_ros_argument("log-level", (required_command, logging_level.name))
@@ -426,6 +431,7 @@ def sync_run_tree_node_locally(
     registration_options: dict,
     port_values: dict = None,
     logging_level: LoggingSeverity = None,
+    namespace: str | None = None,
 ):
     """
     Run a tree node locally using the run_tree_node executable.
@@ -435,6 +441,7 @@ def sync_run_tree_node_locally(
         registration_params: YAML representation of NodeRegistrationOptions encoded in a string
         port_values: Optional YAML map of specific node port values encoded in a string
         logging_level: Logger level to set on the executor
+        namespace: Optional ROS 2 node namespace to run the node under
     """
     required_package = "auto_apms_behavior_tree"
     required_command = "run_tree_node"
@@ -451,6 +458,9 @@ def sync_run_tree_node_locally(
         argv.append(f"{arg_tuple[0]}:={arg_tuple[1]}")
 
     add_ros_argument("remap", ("__node", node_name))
+
+    if namespace:
+        add_ros_argument("remap", ("__ns", namespace if namespace.startswith("/") else f"/{namespace}"))
 
     if logging_level:
         add_ros_argument("log-level", (node_name, logging_level.name))
