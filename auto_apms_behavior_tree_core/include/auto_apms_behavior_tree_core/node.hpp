@@ -21,6 +21,9 @@
 #include "auto_apms_behavior_tree_core/node/ros_subscriber_node.hpp"
 #include "pluginlib/class_list_macros.hpp"
 
+// Include custom string conversion specializations for BT::Node port types
+#include "auto_apms_behavior_tree_core/convert.hpp"
+
 /**
  * @ingroup auto_apms_behavior_tree
  * @brief Macro for registering a behavior tree node plugin.
