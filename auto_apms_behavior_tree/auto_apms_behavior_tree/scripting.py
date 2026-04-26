@@ -241,7 +241,7 @@ def sync_run_generic_behavior_with_executor(
     executor_node_name: str | None = None,
     static_params: dict = None,
     blackboard_params: dict = None,
-    keep_blackboard: bool = False,
+    clear_blackboard: bool = False,
     logging_level: LoggingSeverity = None,
 ):
     """
@@ -258,11 +258,11 @@ def sync_run_generic_behavior_with_executor(
             by the behavior.
         executor_node_name: Name of the behavior tree executor node (e.g. 'my_executor').
             If specified, the function will attempt to configure the node before execution.
-            If None, `static_params`, `blackboard_params`, `keep_blackboard` and `logging_level` arguments will be
+            If None, `static_params`, `blackboard_params`, `clear_blackboard` and `logging_level` arguments will be
             ignored.
         static_params: Static parameters to set on the executor
         blackboard_params: Blackboard parameters to set on the executor
-        keep_blackboard: Do not clear the blackboard before execution
+        clear_blackboard: Clear the blackboard before execution
         logging_level: Logger level to set on the executor
     """
     with DirectNode(None, node_name=GENERIC_NODE_NAME) as node:
@@ -270,12 +270,12 @@ def sync_run_generic_behavior_with_executor(
 
         timeout_sec = 5.0
         if executor_node_name:
-            node.get_logger().info(f"Configuring executor node '{executor_node_name}'")
+            node.get_logger().info(f"Targeting executor node '{executor_node_name}'")
             # Set logger level if requested
             if logging_level is not None:
                 call_set_logger_level(node, executor_node_name, logging_level)
-            # Clear blackboard if not instructed otherwise
-            if not keep_blackboard:
+            # Clear blackboard if instructed to do so
+            if clear_blackboard:
                 call_clear_blackboard_for_executor(node, executor_node_name)
             # Set parameters before sending the goal
             if static_params or blackboard_params:
@@ -306,7 +306,7 @@ def sync_run_behavior_resource_with_executor(
     behavior: BehaviorResource | None,
     static_params: dict = None,
     blackboard_params: dict = None,
-    keep_blackboard: bool = False,
+    clear_blackboard: bool = False,
     logging_level: LoggingSeverity = None,
 ):
     """
@@ -318,7 +318,7 @@ def sync_run_behavior_resource_with_executor(
             decide how to build the tree without a specific build request
         static_params: Static parameters to set on the executor
         blackboard_params: Blackboard parameters to set on the executor
-        keep_blackboard: Do not clear the blackboard before execution
+        clear_blackboard: Clear the blackboard before execution
         logging_level: Logger level to set on the executor
     """
     return sync_run_generic_behavior_with_executor(
@@ -329,7 +329,7 @@ def sync_run_behavior_resource_with_executor(
         node_manifest=behavior.node_manifest if behavior else None,
         static_params=static_params,
         blackboard_params=blackboard_params,
-        keep_blackboard=keep_blackboard,
+        clear_blackboard=clear_blackboard,
         logging_level=logging_level,
     )
 

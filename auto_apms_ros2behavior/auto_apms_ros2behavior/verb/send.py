@@ -98,9 +98,9 @@ class SendVerb(VerbExtension):
             default=[],
         )
         parser.add_argument(
-            "--keep-blackboard",
+            "--clear-blackboard",
             action="store_true",
-            help="Do not explicitly clean the blackboard of the executor before execution",
+            help="Explicitly clear the blackboard of the executor before execution (requires dedicated service to be available)",
         )
         parser.add_argument(
             "--tick-rate",
@@ -181,6 +181,6 @@ class SendVerb(VerbExtension):
             executor_node_name=executor_node_name,
             static_params=static_params,
             blackboard_params=blackboard_params,
-            keep_blackboard=args.keep_blackboard,
+            clear_blackboard=args.clear_blackboard,
             logging_level=args.logging,
         )
