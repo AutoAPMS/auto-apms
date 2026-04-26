@@ -189,7 +189,7 @@ model::SubTree TreeDocument::NodeElement::insertSubTreeNode(const TreeElement & 
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTree(
-  const TreeElement & tree, const NodeElement * before_this)
+  const TreeElement & tree, const NodeElement * before_this, bool auto_register_nodes)
 {
   const XMLElement * root_child = tree.ele_ptr_->FirstChildElement();
   if (!root_child) {
@@ -200,12 +200,11 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTree(
     throw exceptions::TreeDocumentError(
       "Cannot insert tree element '" + tree.getFullyQualifiedName() + "' because it has more than one child node.");
   }
-  doc_ptr_->registerNodes(tree.getRequiredNodeManifest());
-  return insertTreeFromDocument(*tree.doc_ptr_, tree.getName(), before_this);
+  return insertTreeFromDocument(*tree.doc_ptr_, tree.getName(), before_this, auto_register_nodes);
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromDocument(
-  const TreeDocument & doc, const std::string & tree_name, const NodeElement * before_this)
+  const TreeDocument & doc, const std::string & tree_name, const NodeElement * before_this, bool auto_register_nodes)
 {
   const std::vector<std::string> other_tree_names = doc.getAllTreeNames();
   if (other_tree_names.empty()) {
@@ -215,6 +214,13 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromDocument(
   if (!auto_apms_util::contains(other_tree_names, tree_name)) {
     throw exceptions::TreeDocumentError(
       "Cannot insert tree '" + tree_name + "' because document doesn't specify a tree with that name.");
+  }
+
+  if (auto_register_nodes) {
+    // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This
+    // means, that also potentially unused nodes are available and registered with the factory. This seems unnecessary,
+    // but it's very convenient and the performance probably doesn't suffer too much.
+    doc_ptr_->registerNodes(doc.getRequiredNodeManifest(tree_name), false);
   }
 
   // List including the target tree name and the names of its dependencies (Trees required by SubTree nodes)
@@ -276,9 +282,9 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromDocument(
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromDocument(
-  const TreeDocument & doc, const NodeElement * before_this)
+  const TreeDocument & doc, const NodeElement * before_this, bool auto_register_nodes)
 {
-  return insertTreeFromDocument(doc, doc.getRootTreeName(), before_this);
+  return insertTreeFromDocument(doc, doc.getRootTreeName(), before_this, auto_register_nodes);
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromString(
@@ -314,23 +320,18 @@ TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromFile(
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromResource(
-  const TreeResource & resource, const std::string & tree_name, const NodeElement * before_this)
+  const TreeResource & resource, const std::string & tree_name, const NodeElement * before_this,
+  bool auto_register_nodes)
 {
   TreeDocument insert_doc(doc_ptr_->format_version_, doc_ptr_->tree_node_loader_ptr_);
   insert_doc.mergeFile(resource.build_request_file_path_);
-
-  // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This means,
-  // that also potentially unused nodes are available and registered with the factory. This seems unnecessary, but it's
-  // very convenient and the performance probably doesn't suffer too much.
-  doc_ptr_->registerNodes(resource.getNodeManifest(), false);
-
-  return insertTreeFromDocument(insert_doc, tree_name, before_this);
+  return insertTreeFromDocument(insert_doc, tree_name, before_this, auto_register_nodes);
 }
 
 TreeDocument::NodeElement TreeDocument::NodeElement::insertTreeFromResource(
-  const TreeResource & resource, const NodeElement * before_this)
+  const TreeResource & resource, const NodeElement * before_this, bool auto_register_nodes)
 {
-  return insertTreeFromResource(resource, resource.getRootTreeName(), before_this);
+  return insertTreeFromResource(resource, resource.getRootTreeName(), before_this, auto_register_nodes);
 }
 
 bool TreeDocument::NodeElement::hasChildren() const { return ele_ptr_->FirstChild() == nullptr ? false : true; }
@@ -848,9 +849,15 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
   return *this;
 }
 
-TreeDocument & TreeDocument::mergeTreeDocument(const TreeDocument & other, bool adopt_root_tree)
+TreeDocument & TreeDocument::mergeTreeDocument(
+  const TreeDocument & other, bool adopt_root_tree, bool auto_register_nodes)
 {
-  registerNodes(other.getRequiredNodeManifest(), false);
+  if (auto_register_nodes) {
+    // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This
+    // means, that also potentially unused nodes are available and registered with the factory. This seems unnecessary,
+    // but it's very convenient and the performance probably doesn't suffer too much.
+    registerNodes(other.getRequiredNodeManifest(), false);
+  }
   std::set<std::string> include_stack;
   return mergeTreeDocumentImpl(static_cast<const XMLDocument &>(other), adopt_root_tree, include_stack);
 }
@@ -905,17 +912,28 @@ TreeDocument & TreeDocument::mergeFileImpl(
   return *this;
 }
 
-TreeDocument & TreeDocument::mergeResource(const TreeResource & resource, bool adopt_root_tree)
+TreeDocument & TreeDocument::mergeResource(
+  const TreeResource & resource, bool adopt_root_tree, bool auto_register_nodes)
 {
-  registerNodes(resource.getNodeManifest(), false);
+  if (auto_register_nodes) {
+    // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This
+    // means, that also potentially unused nodes are available and registered with the factory. This seems unnecessary,
+    // but it's very convenient and the performance probably doesn't suffer too much.
+    registerNodes(resource.getNodeManifest(), false);
+  }
   return mergeFile(resource.build_request_file_path_, adopt_root_tree);
 }
 
-TreeDocument & TreeDocument::mergeTree(const TreeElement & tree, bool make_root_tree)
+TreeDocument & TreeDocument::mergeTree(const TreeElement & tree, bool make_root_tree, bool auto_register_nodes)
 {
   XMLDocument tree_doc;
   tree_doc.InsertEndChild(tree.ele_ptr_->DeepClone(&tree_doc));
-  registerNodes(tree.getRequiredNodeManifest(), false);
+  if (auto_register_nodes) {
+    // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This
+    // means, that also potentially unused nodes are available and registered with the factory. This seems unnecessary,
+    // but it's very convenient and the performance probably doesn't suffer too much.
+    registerNodes(tree.getRequiredNodeManifest(), false);
+  }
   mergeTreeDocument(tree_doc, make_root_tree);
   return *this;
 }
@@ -934,12 +952,13 @@ TreeDocument::TreeElement TreeDocument::newTree(const std::string & tree_name)
   return TreeElement(this, new_ele);
 }
 
-TreeDocument::TreeElement TreeDocument::newTree(const TreeElement & other_tree)
+TreeDocument::TreeElement TreeDocument::newTree(const TreeElement & other, bool auto_register_nodes)
 {
-  return mergeTree(other_tree).getTree(other_tree.getName());
+  return mergeTree(other, false, auto_register_nodes).getTree(other.getName());
 }
 
-TreeDocument::TreeElement TreeDocument::newTreeFromDocument(const TreeDocument & other, const std::string & tree_name)
+TreeDocument::TreeElement TreeDocument::newTreeFromDocument(
+  const TreeDocument & other, const std::string & tree_name, bool auto_register_nodes)
 {
   std::string name(tree_name);
   if (name.empty()) {
@@ -954,7 +973,7 @@ TreeDocument::TreeElement TreeDocument::newTreeFromDocument(const TreeDocument &
     }
   }
   TreeElement tree_ele = newTree(name);
-  tree_ele.insertTreeFromDocument(other, name);
+  tree_ele.insertTreeFromDocument(other, name, nullptr, auto_register_nodes);
   return tree_ele;
 }
 
@@ -962,24 +981,29 @@ TreeDocument::TreeElement TreeDocument::newTreeFromString(const std::string & tr
 {
   TreeDocument new_doc(format_version_, tree_node_loader_ptr_);
   new_doc.mergeString(tree_str, true);
-  return newTreeFromDocument(new_doc, tree_name);
+  return newTreeFromDocument(new_doc, tree_name, false);
 }
 
 TreeDocument::TreeElement TreeDocument::newTreeFromFile(const std::string & path, const std::string & tree_name)
 {
   TreeDocument new_doc(format_version_, tree_node_loader_ptr_);
   new_doc.mergeFile(path, true);
-  return newTreeFromDocument(new_doc, tree_name);
+  return newTreeFromDocument(new_doc, tree_name, false);
 }
 
 TreeDocument::TreeElement TreeDocument::newTreeFromResource(
-  const TreeResource & resource, const std::string & tree_name)
+  const TreeResource & resource, const std::string & tree_name, bool auto_register_nodes)
 {
   TreeDocument new_doc(format_version_, tree_node_loader_ptr_);
   new_doc.mergeFile(resource.build_request_file_path_);
   if (resource.hasRootTreeName()) new_doc.setRootTreeName(resource.getRootTreeName());
-  registerNodes(resource.getNodeManifest(), false);
-  return newTreeFromDocument(new_doc, tree_name);
+  if (auto_register_nodes) {
+    // We register all associated node plugins beforehand, so that the user doesn't have to do that manually. This
+    // means, that also potentially unused nodes are available and registered with the factory. This seems unnecessary,
+    // but it's very convenient and the performance probably doesn't suffer too much.
+    registerNodes(resource.getNodeManifest(), false);
+  }
+  return newTreeFromDocument(new_doc, tree_name, false);
 }
 
 bool TreeDocument::hasTreeName(const std::string & tree_name) const
@@ -1186,11 +1210,13 @@ std::set<std::string> TreeDocument::getRegisteredNodeNames(bool include_native) 
   return names;
 }
 
-NodeManifest TreeDocument::getRequiredNodeManifest() const
+NodeManifest TreeDocument::getRequiredNodeManifest(const std::string & tree_name) const
 {
   NodeManifest m;
   TreeDocument * doc = const_cast<TreeDocument *>(this);
-  for (const std::string & tree_name : getAllTreeNames()) {
+  std::vector<std::string> tree_names_to_process =
+    tree_name.empty() ? getAllTreeNames() : std::vector<std::string>{tree_name};
+  for (const std::string & tree_name : tree_names_to_process) {
     XMLElement * ptr = const_cast<XMLElement *>(getXMLElementForTreeWithName(tree_name));
     const TreeElement ele(doc, ptr);
     m.merge(ele.getRequiredNodeManifest(), true);
