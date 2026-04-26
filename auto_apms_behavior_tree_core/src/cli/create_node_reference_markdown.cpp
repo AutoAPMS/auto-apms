@@ -95,6 +95,18 @@ int main(int argc, char ** argv)
       return ret;
     };
 
+    auto escapePipes = [](const std::string & str) {
+      std::string ret;
+      ret.reserve(str.size());
+      for (char c : str) {
+        if (c == '|')
+          ret += "\\|";
+        else
+          ret += c;
+      }
+      return ret;
+    };
+
     std::ostringstream content;
     content << R"(<!-- markdownlint-disable MD024 MD041 MD060 -->
 | Registration Name | Class Name | Package |
@@ -157,7 +169,7 @@ int main(int argc, char ** argv)
 | :--- | :---: | :---: | :--- |
 )";
           for (const NodePortInfo & port_info : inputs) {
-            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? port_info.port_default : "❌") << " | " << port_info.port_description << " |\n";
+            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? escapePipes(port_info.port_default) : "❌") << " | " << escapePipes(port_info.port_description) << " |\n";
           }
         }
         if (!outputs.empty()) {
@@ -168,7 +180,7 @@ int main(int argc, char ** argv)
 | :--- | :---: | :---: | :--- |
 )";
           for (const NodePortInfo & port_info : outputs) {
-            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? port_info.port_default : "❌") << " | " << port_info.port_description << " |\n";
+            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? escapePipes(port_info.port_default) : "❌") << " | " << escapePipes(port_info.port_description) << " |\n";
           }
         }
         if (!inouts.empty()) {
@@ -179,7 +191,7 @@ int main(int argc, char ** argv)
 | :--- | :---: | :---: | :--- |
 )";
           for (const NodePortInfo & port_info : inouts) {
-            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? port_info.port_default : "❌") << " | " << port_info.port_description << " |\n";
+            content << "| **" << port_info.port_name << "** | `" << port_info.port_type << "` | " << (port_info.port_has_default ? escapePipes(port_info.port_default) : "❌") << " | " << escapePipes(port_info.port_description) << " |\n";
           }
         }
         // clang-format on
