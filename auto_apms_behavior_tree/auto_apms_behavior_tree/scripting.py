@@ -268,7 +268,8 @@ def sync_run_generic_behavior_with_executor(
     with DirectNode(None, node_name=GENERIC_NODE_NAME) as node:
         node.get_logger().info(f"Targeting behavior execution action '{action_name}'")
 
-        timeout_sec = 5.0
+        min_timeout_sec = 5.0
+        timeout_sec = min_timeout_sec
         if executor_node_name:
             node.get_logger().info(f"Targeting executor node '{executor_node_name}'")
             # Set logger level if requested
@@ -286,8 +287,13 @@ def sync_run_generic_behavior_with_executor(
                 response: GetParameters.Response = call_get_parameters(
                     node=node, node_name=executor_node_name, parameter_names=["tick_rate"]
                 )
-                tick_rate = get_value(parameter_value=response.values[0])
-            timeout_sec = max(tick_rate * 2.5, 5.0)
+                if len(response.values) == 0:
+                    tick_rate = 0.1
+                else:
+                    tick_rate = get_value(parameter_value=response.values[0])
+
+            # Set timeout based on tick rate, but at least min_timeout_sec
+            timeout_sec = max(tick_rate * 2.5, min_timeout_sec)
 
         return call_start_tree_action(
             node,
