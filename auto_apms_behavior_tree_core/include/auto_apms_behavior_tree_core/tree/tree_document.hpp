@@ -983,9 +983,12 @@ public:
      *
      * In contrast to TreeDocument::writeToString, the resulting XML contains the tree element as its root element,
      * emphasizing the fact that this function returns an XML for a single behavior tree only.
+     * @param remove_whitespace If `true`, insignificant whitespace (indentation and newlines between elements) is
+     * omitted from the output, producing a compact single-line representation. If `false` (default), the output is
+     * pretty-printed with standard indentation.
      * @return String representing the behavior tree in XML format.
      */
-    std::string writeToString() const;
+    std::string writeToString(bool remove_whitespace = false) const;
 
     /**
      * This function is an exact reimplementation of NodeElement::removeFirstChild(const std::string &, const
@@ -1482,15 +1485,22 @@ public:
 
   /**
    * @brief Write the XML of this tree document to a string.
+   *
+   * @param remove_whitespace If `true`, insignificant whitespace (indentation and newlines between elements) is
+   * omitted from the output, producing a compact single-line representation.
    * @return String representing this document in XML format.
    */
-  std::string writeToString() const;
+  std::string writeToString(bool remove_whitespace = false) const;
 
   /**
    * @brief Write the XML of this tree document to a file.
+   *
    * @param path Path to the output file.
+   * @param remove_whitespace If `true`, insignificant whitespace (indentation and newlines between elements) is
+   * omitted from the output, producing a compact single-line file. If `false` (default), the file is
+   * pretty-printed with standard indentation.
    */
-  void writeToFile(const std::string & path) const;
+  void writeToFile(const std::string & path, bool remove_whitespace = false) const;
 
   /**
    * @brief Clear this document and reset it to its initial state.

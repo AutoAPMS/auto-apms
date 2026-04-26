@@ -14,6 +14,9 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
+#include <fstream>
+
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
 #include "auto_apms_behavior_tree_core/node/node_model_type.hpp"
 #include "testable_tree_document.hpp"
@@ -570,6 +573,83 @@ TEST_F(TreeDocumentTreeGenerationTest, WriteToStringWithTrees)
 
   EXPECT_TRUE(xml.find("TestTree") != std::string::npos);
   EXPECT_TRUE(xml.find("BehaviorTree") != std::string::npos);
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, WriteToStringRemoveWhitespaceContainsNoNewlines)
+{
+  doc_->newTree("TestTree");
+
+  std::string xml = doc_->writeToString(true);
+
+  EXPECT_TRUE(xml.find('\n') == std::string::npos);
+  EXPECT_TRUE(xml.find("TestTree") != std::string::npos);
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, WriteToStringRemoveWhitespaceShorterThanPrettyPrinted)
+{
+  doc_->newTree("TestTree");
+
+  EXPECT_LT(doc_->writeToString(true).size(), doc_->writeToString(false).size());
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, WriteToStringRemoveWhitespaceRoundTrips)
+{
+  // A document serialized without whitespace must still be parseable.
+  doc_->newTree("TestTree").makeRoot().insertNode("Sequence");
+
+  const std::string compact = doc_->writeToString(true);
+
+  TreeDocument round_trip;
+  EXPECT_NO_THROW(round_trip.mergeString(compact));
+  EXPECT_TRUE(round_trip.hasTreeName("TestTree"));
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, TreeElementWriteToStringRemoveWhitespaceContainsNoNewlines)
+{
+  auto tree = doc_->newTree("TestTree");
+
+  std::string xml = tree.writeToString(true);
+
+  EXPECT_TRUE(xml.find('\n') == std::string::npos);
+  EXPECT_TRUE(xml.find("TestTree") != std::string::npos);
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, TreeElementWriteToStringRemoveWhitespaceShorterThanPrettyPrinted)
+{
+  auto tree = doc_->newTree("TestTree");
+
+  EXPECT_LT(tree.writeToString(true).size(), tree.writeToString(false).size());
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, WriteToFileRemoveWhitespaceParseable)
+{
+  doc_->newTree("TestTree").makeRoot().insertNode("Sequence");
+
+  const std::string path =
+    std::string(std::getenv("TEST_TMPDIR") ? std::getenv("TEST_TMPDIR") : "/tmp") + "/tree_doc_compact.xml";
+  ASSERT_NO_THROW(doc_->writeToFile(path, true));
+
+  TreeDocument loaded;
+  ASSERT_NO_THROW(loaded.mergeFile(path));
+  EXPECT_TRUE(loaded.hasTreeName("TestTree"));
+
+  // File must contain no newlines (compact format).
+  std::ifstream f(path);
+  std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  EXPECT_TRUE(content.find('\n') == std::string::npos);
+}
+
+TEST_F(TreeDocumentTreeGenerationTest, WriteToFilePrettyPrintedContainsNewlines)
+{
+  doc_->newTree("TestTree").makeRoot().insertNode("Sequence");
+
+  const std::string path =
+    std::string(std::getenv("TEST_TMPDIR") ? std::getenv("TEST_TMPDIR") : "/tmp") + "/tree_doc_pretty.xml";
+  ASSERT_NO_THROW(doc_->writeToFile(path, false));
+
+  std::ifstream f(path);
+  std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  EXPECT_TRUE(content.find('\n') != std::string::npos);
 }
 
 // =============================================================================

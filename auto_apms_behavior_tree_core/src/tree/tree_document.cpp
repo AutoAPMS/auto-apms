@@ -15,6 +15,7 @@
 #include "auto_apms_behavior_tree_core/tree/tree_document.hpp"
 
 #include <algorithm>
+#include <cstdio>
 #include <filesystem>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
@@ -645,11 +646,11 @@ BT::Result TreeDocument::TreeElement::verify() const
   return doc.mergeTree(*this, true).verify();
 }
 
-std::string TreeDocument::TreeElement::writeToString() const
+std::string TreeDocument::TreeElement::writeToString(bool remove_whitespace) const
 {
   XMLDocument tree_doc;
   tree_doc.InsertEndChild(ele_ptr_->DeepClone(&tree_doc));
-  tinyxml2::XMLPrinter printer;
+  tinyxml2::XMLPrinter printer(nullptr, remove_whitespace);
   tree_doc.Print(&printer);
   return printer.CStr();
 }
@@ -1422,21 +1423,24 @@ BT::Result TreeDocument::verify() const
   return {};
 }
 
-std::string TreeDocument::writeToString() const
+std::string TreeDocument::writeToString(bool remove_whitespace) const
 {
-  tinyxml2::XMLPrinter printer;
+  tinyxml2::XMLPrinter printer(nullptr, remove_whitespace);
   Print(&printer);
   return printer.CStr();
 }
 
-void TreeDocument::writeToFile(const std::string & path) const
+void TreeDocument::writeToFile(const std::string & path, bool remove_whitespace) const
 {
-  XMLDocument doc;
-  DeepCopy(&doc);
-  tinyxml2::XMLError result = doc.SaveFile(path.c_str());
-  if (result != tinyxml2::XML_SUCCESS) {
-    throw exceptions::TreeDocumentError(
-      "Failed to write tree document to file. Error ID: " + std::string(doc.ErrorIDToName(result)));
+  const std::string xml = writeToString(remove_whitespace);
+  FILE * f = std::fopen(path.c_str(), "w");
+  if (!f) {
+    throw exceptions::TreeDocumentError("Failed to open file for writing: " + path);
+  }
+  const std::size_t written = std::fwrite(xml.data(), 1, xml.size(), f);
+  const int close_err = std::fclose(f);
+  if (written != xml.size() || close_err != 0) {
+    throw exceptions::TreeDocumentError("Failed to write tree document to file: " + path);
   }
 }
 
