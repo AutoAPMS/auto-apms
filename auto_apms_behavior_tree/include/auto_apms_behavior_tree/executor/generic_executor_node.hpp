@@ -108,7 +108,7 @@ public:
     const std::string & build_request, const std::string & entry_point = "",
     const core::NodeManifest & node_manifest = {});
 
-private:
+protected:
   /* Virtual methods to be overridden by derived classes */
 
   /**
@@ -137,7 +137,11 @@ private:
    */
   virtual void postBuild(Tree & tree);
 
-protected:
+  virtual bool onTick() override;
+
+  virtual bool afterTick() override;
+
+public:
   /* Utility methods */
 
   /**
@@ -209,10 +213,6 @@ protected:
    * @return `true` if blackboard was cleared, `false` if executor is not idle.
    */
   virtual bool clearGlobalBlackboard() override;
-
-  bool onTick() override;
-
-  bool afterTick() override;
 
 private:
   /* Internal callbacks */
