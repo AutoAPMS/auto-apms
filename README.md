@@ -25,9 +25,6 @@ This project adopts the behavior tree implementation provided by [BehaviorTree.C
 
 The intention of this project is to make it significantly more user-friendly and less error prone to develop autonomous robotics with behavior trees. The core packages are written in C++ and a supplementary Python API exposes high-level features for scripting.
 
-> [!NOTE]
-> Currently we support **Linux only**!.
-
 ## ✨ Highlights
 
 Here are some of the most prominent features offered by this repository:
@@ -46,13 +43,41 @@ Here are some of the most prominent features offered by this repository:
 
 - `ros2 behavior` command extending the ROS2 CLI for behavior management
 
-- Abstractions for PX4 Autopilot available with [auto-apms-px4](https://github.com/autoapms/auto-apms-px4)
+- Comprehensive [User Guide](https://autoapms.github.io/auto-apms-guide/) and [API Docs](https://autoapms.github.io/auto-apms/)
 
-- Comprehensive [user guide](https://autoapms.github.io/auto-apms-guide/) and [API documentation](https://autoapms.github.io/auto-apms/)
+- Web-based behavior tree editor and deployment tool [AutoAPMS Studio](https://github.com/AutoAPMS/auto_apms_studio)
 
 ## 🚀 Getting Started
 
 The following installation guide helps you getting started with AutoAPMS.
+
+### Install debian packages
+
+**Core API**
+
+```bash
+sudo apt install ros-$ROS_DISTRO-auto-apms-behavior-tree-core
+```
+
+**Standard Nodes & Behavior Executor**
+
+```bash
+sudo apt install ros-$ROS_DISTRO-auto-apms-behavior-tree
+```
+
+**CLI Tooling**
+
+```bash
+sudo apt install ros-$ROS_DISTRO-auto-apms-ros2behavior
+```
+
+**Examples**
+
+```bash
+sudo apt install ros-$ROS_DISTRO-auto-apms-examples
+```
+
+### Build from source
 
 1. Create a [ROS 2 workspace](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html) and clone this repository
 
