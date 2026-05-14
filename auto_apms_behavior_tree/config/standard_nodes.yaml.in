@@ -134,3 +134,43 @@ ${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_POSE}:
 ${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_TWIST}:
   class_name: ${PROJECT_NAME}::PublishTwist
   description: "Publishes a geometry_msgs/TwistStamped message with linear and angular velocity"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_LOAD_NODE}:
+  class_name: ${PROJECT_NAME}::CompositionLoadNode
+  topic: (input:container)/_container/load_node
+  description: "Loads a composable node plugin into a ROS 2 component container"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_UNLOAD_NODE}:
+  class_name: ${PROJECT_NAME}::CompositionUnloadNode
+  topic: (input:container)/_container/unload_node
+  description: "Unloads a composable node from a ROS 2 component container by unique ID"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_GET_STATE}:
+  class_name: ${PROJECT_NAME}::LifecycleGetState
+  topic: (input:node)/get_state
+  description: "Retrieves the current lifecycle state of a ROS 2 managed node"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CHANGE_STATE}:
+  class_name: ${PROJECT_NAME}::LifecycleChangeState
+  topic: (input:node)/change_state
+  description: "Executes a lifecycle state machine transition on a ROS 2 managed node"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CONFIGURE}:
+  class_name: ${PROJECT_NAME}::LifecycleConfigure
+  topic: (input:node)/change_state
+  description: "Sends the 'configure' transition (id=1) to a ROS 2 lifecycle node"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CLEANUP}:
+  class_name: ${PROJECT_NAME}::LifecycleCleanup
+  topic: (input:node)/change_state
+  description: "Sends the 'cleanup' transition (id=2) to a ROS 2 lifecycle node"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_ACTIVATE}:
+  class_name: ${PROJECT_NAME}::LifecycleActivate
+  topic: (input:node)/change_state
+  description: "Sends the 'activate' transition (id=3) to a ROS 2 lifecycle node"
+
+${_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_DEACTIVATE}:
+  class_name: ${PROJECT_NAME}::LifecycleDeactivate
+  topic: (input:node)/change_state
+  description: "Sends the 'deactivate' transition (id=4) to a ROS 2 lifecycle node"

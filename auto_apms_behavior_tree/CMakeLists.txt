@@ -14,6 +14,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(composition_interfaces REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 find_package(generate_parameter_library REQUIRED)
 find_package(auto_apms_util REQUIRED)
 find_package(auto_apms_interfaces REQUIRED)
@@ -76,6 +78,15 @@ set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_EMPTY "SetEmpty")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_SET_TRIGGER "SetTrigger")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_POSE "PublishPose")
 set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_PUBLISH_TWIST "PublishTwist")
+
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_LOAD_NODE "CompositionLoadNode")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_UNLOAD_NODE "CompositionUnloadNode")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_GET_STATE "LifecycleGetState")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CHANGE_STATE "LifecycleChangeState")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CONFIGURE "LifecycleConfigure")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_CLEANUP "LifecycleCleanup")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_ACTIVATE "LifecycleActivate")
+set(_AUTO_APMS_BEHAVIOR_TREE__BUILTIN_NODE_NAME_DEACTIVATE "LifecycleDeactivate")
 
 #
 # ------------ Library --------------
@@ -173,6 +184,8 @@ add_library(${PROJECT_NAME}_behavior_tree_nodes SHARED
   "src/node/set_trigger.cpp"
   "src/node/publish_pose.cpp"
   "src/node/publish_twist.cpp"
+  "src/node/composition_nodes.cpp"
+  "src/node/lifecycle_nodes.cpp"
 )
 # Make parameter util available for standard nodes too, but don't include anything that's not also been added to the sources
 target_include_directories(${PROJECT_NAME}_behavior_tree_nodes PRIVATE
@@ -186,6 +199,8 @@ target_link_libraries(${PROJECT_NAME}_behavior_tree_nodes PUBLIC
   ${std_srvs_TARGETS}
   ${geometry_msgs_TARGETS}
   ${tf2_geometry_msgs_TARGETS}
+  ${composition_interfaces_TARGETS}
+  ${lifecycle_msgs_TARGETS}
   ${auto_apms_interfaces_TARGETS}
   auto_apms_behavior_tree_core::auto_apms_behavior_tree_core
 )
@@ -219,12 +234,19 @@ auto_apms_behavior_tree_register_nodes(${PROJECT_NAME}_behavior_tree_nodes
   "${PROJECT_NAME}::GetParameterDoubleVec"
   "${PROJECT_NAME}::GetParameterStringVec"
   "${PROJECT_NAME}::HasParameter"
-
   "${PROJECT_NAME}::SetBool"
   "${PROJECT_NAME}::SetEmpty"
   "${PROJECT_NAME}::SetTrigger"
   "${PROJECT_NAME}::PublishPose"
   "${PROJECT_NAME}::PublishTwist"
+  "${PROJECT_NAME}::CompositionLoadNode"
+  "${PROJECT_NAME}::CompositionUnloadNode"
+  "${PROJECT_NAME}::LifecycleGetState"
+  "${PROJECT_NAME}::LifecycleChangeState"
+  "${PROJECT_NAME}::LifecycleConfigure"
+  "${PROJECT_NAME}::LifecycleCleanup"
+  "${PROJECT_NAME}::LifecycleActivate"
+  "${PROJECT_NAME}::LifecycleDeactivate"
   NODE_MANIFEST
   "config/standard_nodes.yaml.in"
   NODE_MANIFEST_ALIAS
