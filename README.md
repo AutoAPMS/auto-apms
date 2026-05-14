@@ -51,7 +51,9 @@ Here are some of the most prominent features offered by this repository:
 
 The following installation guide helps you getting started with AutoAPMS.
 
-### Install debian packages
+<details open>
+
+<summary>Recommended: Install debian packages</summary>
 
 **Core API**
 
@@ -77,7 +79,11 @@ sudo apt install ros-$ROS_DISTRO-auto-apms-ros2behavior
 sudo apt install ros-$ROS_DISTRO-auto-apms-examples
 ```
 
-### Build from source
+</details>
+
+<details>
+
+<summary>Alternative: Build from source</summary>
 
 1. Create a [ROS 2 workspace](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html) and clone this repository
 
@@ -100,16 +106,18 @@ sudo apt install ros-$ROS_DISTRO-auto-apms-examples
     colcon build --packages-up-to auto_apms_examples --symlink-install
     ```
 
-1. Run your first behavior using `ros2 behavior`. This is an extension of the ROS 2 CLI introduced by the `auto_apms_ros2behavior` package
+</details>
 
-    ```bash
-    source install/setup.bash
-    ros2 behavior run auto_apms_examples::demo::HelloWorld --blackboard name:=Turtle
-    ```
+### Try it out
 
-### Check out the demo using [pyrobosim](https://github.com/sea-bass/pyrobosim)
+Run your first behavior using `ros2 behavior`. This is an extension of the ROS 2 CLI introduced by the `auto_apms_ros2behavior` package
 
-We provide a guide for running a cool **visual demonstration** on complex behaviors created with AutoAPMS in the [auto_apms_simulation](https://github.com/AutoAPMS/auto_apms_simulation) repository.
+```bash
+source install/setup.bash
+ros2 behavior run auto_apms_examples::demo::HelloWorld --blackboard name:=Turtle
+```
+
+Or check out the demo using [pyrobosim](https://github.com/sea-bass/pyrobosim) on complex behaviors created with AutoAPMS in the [auto_apms_simulation](https://github.com/AutoAPMS/auto_apms_simulation) repository.
 
 ## 🎓 Documentation
 
