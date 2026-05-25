@@ -27,6 +27,7 @@
 #include "auto_apms_util/logging.hpp"
 #include "auto_apms_util/string.hpp"
 #include "behaviortree_cpp/xml_parsing.h"
+#include "yaml-cpp/yaml.h"
 
 namespace auto_apms_behavior_tree::core
 {
@@ -389,6 +390,26 @@ TreeDocument::NodeElement::PortValues TreeDocument::NodeElement::getPorts() cons
   return values;
 }
 
+std::optional<NodeRegistrationOptions> TreeDocument::NodeElement::getInlineRegistrationOptions() const
+{
+  // Build a YAML node using the attributes with the prefix for inline registration options. This allows us to reuse the
+  // parsing logic implemented for YAML-based node registration options
+  YAML::Node reg_opts_node(YAML::NodeType::Map);
+  for (const tinyxml2::XMLAttribute * attr = ele_ptr_->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+    if (const std::string attr_name = attr->Name();
+        attr_name.rfind(INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX, 0) == 0) {
+      const std::string option_name = attr_name.substr(strlen(INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX));
+      reg_opts_node[option_name] = YAML::Load(attr->Value());
+    }
+  }
+  try {
+    NodeRegistrationOptions options = reg_opts_node.as<NodeRegistrationOptions>();
+    return options.valid() ? std::optional(options) : std::nullopt;
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
 TreeDocument::NodeElement & TreeDocument::NodeElement::setPorts(const PortValues & port_values)
 {
   // Verify port_values
@@ -405,6 +426,27 @@ TreeDocument::NodeElement & TreeDocument::NodeElement::setPorts(const PortValues
   // Populate attributes according to the content of port_values
   for (const auto & [key, val] : port_values) {
     ele_ptr_->SetAttribute(key.c_str(), val.c_str());
+  }
+  return *this;
+}
+
+TreeDocument::NodeElement & TreeDocument::NodeElement::setInlineRegistrationOptions(
+  const NodeRegistrationOptions & registration_options)
+{
+  if (!registration_options.valid()) {
+    throw exceptions::TreeDocumentError(
+      "Cannot set inline registration options for node '" + getFullyQualifiedName() +
+      "': Registration options are invalid.");
+  }
+  const YAML::Node node = YAML::convert<NodeRegistrationOptions>::encode(registration_options);
+  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
+    const std::string attr_name =
+      std::string(INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) + it->first.as<std::string>();
+    // Use flow notation so that sequences and maps are encoded as compact JSON (e.g. [a, b] / {k: v}),
+    // which is valid YAML and can be parsed back with YAML::Load()
+    YAML::Emitter emitter;
+    emitter << YAML::Flow << it->second;
+    ele_ptr_->SetAttribute(attr_name.c_str(), emitter.c_str());
   }
   return *this;
 }

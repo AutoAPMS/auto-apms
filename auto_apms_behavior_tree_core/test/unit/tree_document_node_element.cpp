@@ -679,3 +679,407 @@ TEST_F(NodeElementRemoveFirstChildTest, TreeElementRemoveFirstChildDeepSearch)
   ASSERT_EQ(names.size(), 1u);
   EXPECT_EQ(names[0], "TestAction2");
 }
+
+// =============================================================================
+// getInlineRegistrationOptions Tests
+// =============================================================================
+
+class NodeElementGetInlineRegistrationOptionsTest : public ::testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    doc_ = std::make_unique<TestableTreeDocument>();
+    doc_->addTestNode("TestAction");
+  }
+
+  std::unique_ptr<TestableTreeDocument> doc_;
+
+  // Convenience helper: attribute name for a given option key
+  static std::string attr(const std::string & option_key)
+  {
+    return std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) + option_key;
+  }
+};
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, NoInlineAttributesReturnsNullopt)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto node = tree.insertNode("Sequence");
+
+  EXPECT_FALSE(node.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, OnlyNonPrefixedAttributesReturnsNullopt)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto node = tree.insertNode("Sequence");
+  // Port-like attribute and instance name – neither has the prefix
+  node.getXMLElement()->SetAttribute("name", "my_instance");
+  node.getXMLElement()->SetAttribute("some_port", "some_value");
+
+  EXPECT_FALSE(node.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, ValidClassNameReturnsOptions)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "my_pkg::MyClass");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "my_pkg::MyClass");
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, EmptyClassNameReturnsNullopt)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  // valid() returns false when class_name is empty
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "");
+
+  EXPECT_FALSE(node.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, MultipleOptionsAllParsed)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "my_pkg::MyClass");
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC).c_str(), "/my/action");
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_DESCRIPTION).c_str(), "A test node");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "my_pkg::MyClass");
+  EXPECT_EQ(result->topic, "/my/action");
+  EXPECT_EQ(result->description, "A test node");
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, MixedPrefixedAndNonPrefixedAttributes)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  // Non-prefixed port attribute should be ignored
+  node.getXMLElement()->SetAttribute("name", "my_instance");
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "pkg::SomeClass");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "pkg::SomeClass");
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, BooleanAndNumericOptionsParsed)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "pkg::SomeClass");
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_ALLOW_UNREACHABLE).c_str(), "true");
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_WAIT_TIMEOUT).c_str(), "5.0");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "pkg::SomeClass");
+  EXPECT_TRUE(result->allow_unreachable);
+  EXPECT_DOUBLE_EQ(result->wait_timeout.count(), 5.0);
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, JsonArrayAttributeDecodedCorrectly)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "pkg::MyClass");
+  // Simulate what setInlineRegistrationOptions emits for a sequence field
+  node.getXMLElement()->SetAttribute(
+    attr(NodeRegistrationOptions::PARAM_NAME_HIDDEN_PORTS).c_str(), "[port1, port2, port3]");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_EQ(result->hidden_ports.size(), 3u);
+  EXPECT_EQ(result->hidden_ports[0], "port1");
+  EXPECT_EQ(result->hidden_ports[1], "port2");
+  EXPECT_EQ(result->hidden_ports[2], "port3");
+}
+
+TEST_F(NodeElementGetInlineRegistrationOptionsTest, JsonObjectAttributeDecodedCorrectly)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  node.getXMLElement()->SetAttribute(attr(NodeRegistrationOptions::PARAM_NAME_CLASS).c_str(), "pkg::MyClass");
+  // Simulate what setInlineRegistrationOptions emits for a map field
+  node.getXMLElement()->SetAttribute(
+    attr(NodeRegistrationOptions::PARAM_NAME_PORT_ALIAS).c_str(), "{old_port: new_port}");
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_EQ(result->port_alias.size(), 1u);
+  EXPECT_EQ(result->port_alias.at("old_port"), "new_port");
+}
+
+// =============================================================================
+// setInlineRegistrationOptions Tests
+// =============================================================================
+
+class NodeElementSetInlineRegistrationOptionsTest : public ::testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    doc_ = std::make_unique<TestableTreeDocument>();
+    doc_->addTestNode("TestAction");
+  }
+
+  std::unique_ptr<TestableTreeDocument> doc_;
+};
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, ValidOptionsSetAttributes)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "my_pkg::MyClass";
+  EXPECT_NO_THROW(node.setInlineRegistrationOptions(opts));
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "my_pkg::MyClass");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, InvalidOptionsThrows)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions invalid_opts;
+  // class_name is empty by default → valid() returns false
+  EXPECT_THROW(node.setInlineRegistrationOptions(invalid_opts), exceptions::TreeDocumentError);
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, RoundTripWithGetter)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "my_pkg::MyClass";
+  opts.topic = "/my/action_server";
+  opts.description = "Does something useful";
+  opts.allow_unreachable = true;
+  opts.wait_timeout = std::chrono::duration<double>(7.5);
+
+  node.setInlineRegistrationOptions(opts);
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, opts.class_name);
+  EXPECT_EQ(result->topic, opts.topic);
+  EXPECT_EQ(result->description, opts.description);
+  EXPECT_EQ(result->allow_unreachable, opts.allow_unreachable);
+  EXPECT_DOUBLE_EQ(result->wait_timeout.count(), opts.wait_timeout.count());
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, ReturnsSelfForChaining)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "pkg::SomeClass";
+
+  auto & ref = node.setInlineRegistrationOptions(opts);
+  EXPECT_EQ(&ref, &node);
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, OverwritesPreviousOptions)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts1;
+  opts1.class_name = "pkg::FirstClass";
+  node.setInlineRegistrationOptions(opts1);
+
+  NodeRegistrationOptions opts2;
+  opts2.class_name = "pkg::SecondClass";
+  node.setInlineRegistrationOptions(opts2);
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "pkg::SecondClass");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, SequenceFieldEncodedAsJsonArray)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "pkg::MyClass";
+  opts.hidden_ports = {"port1", "port2"};
+  node.setInlineRegistrationOptions(opts);
+
+  // Verify the raw attribute is flow/JSON notation (starts with '[')
+  const std::string attr_name = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                NodeRegistrationOptions::PARAM_NAME_HIDDEN_PORTS;
+  const char * attr_val = node.getXMLElement()->Attribute(attr_name.c_str());
+  ASSERT_NE(attr_val, nullptr);
+  EXPECT_EQ(attr_val[0], '[') << "Sequence should be encoded as JSON array, got: " << attr_val;
+
+  // Verify round-trip
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_EQ(result->hidden_ports.size(), 2u);
+  EXPECT_EQ(result->hidden_ports[0], "port1");
+  EXPECT_EQ(result->hidden_ports[1], "port2");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, MapFieldsEncodedAsJsonObject)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "pkg::MyClass";
+  opts.port_alias = {{"old_port", "new_port"}};
+  opts.port_default = {{"my_port", "default_value"}};
+  node.setInlineRegistrationOptions(opts);
+
+  // Verify port_alias attribute is flow/JSON notation (starts with '{')
+  const std::string alias_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_PORT_ALIAS;
+  const char * alias_val = node.getXMLElement()->Attribute(alias_attr.c_str());
+  ASSERT_NE(alias_val, nullptr);
+  EXPECT_EQ(alias_val[0], '{') << "Map should be encoded as JSON object, got: " << alias_val;
+
+  // Verify port_default attribute is flow/JSON notation
+  const std::string default_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                   NodeRegistrationOptions::PARAM_NAME_PORT_DEFAULT;
+  const char * default_val = node.getXMLElement()->Attribute(default_attr.c_str());
+  ASSERT_NE(default_val, nullptr);
+  EXPECT_EQ(default_val[0], '{') << "Map should be encoded as JSON object, got: " << default_val;
+
+  // Verify round-trip
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_EQ(result->port_alias.size(), 1u);
+  EXPECT_EQ(result->port_alias.at("old_port"), "new_port");
+  ASSERT_EQ(result->port_default.size(), 1u);
+  EXPECT_EQ(result->port_default.at("my_port"), "default_value");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, ExtraFieldMapRoundTrip)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "pkg::MyClass";
+  opts.extra = YAML::Load("{custom_param: 42, label: hello}");
+  node.setInlineRegistrationOptions(opts);
+
+  // Verify the extra attribute is flow/JSON notation (starts with '{')
+  const std::string extra_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_EXTRA;
+  const char * extra_val = node.getXMLElement()->Attribute(extra_attr.c_str());
+  ASSERT_NE(extra_val, nullptr);
+  EXPECT_EQ(extra_val[0], '{') << "Extra map should be encoded as JSON object, got: " << extra_val;
+
+  // Verify round-trip
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->extra.IsMap());
+  EXPECT_EQ(result->extra["custom_param"].as<int>(), 42);
+  EXPECT_EQ(result->extra["label"].as<std::string>(), "hello");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, ExtraFieldSequenceRoundTrip)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "pkg::MyClass";
+  opts.extra = YAML::Load("[item1, item2, item3]");
+  node.setInlineRegistrationOptions(opts);
+
+  // Verify the extra attribute is flow/JSON notation (starts with '[')
+  const std::string extra_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_EXTRA;
+  const char * extra_val = node.getXMLElement()->Attribute(extra_attr.c_str());
+  ASSERT_NE(extra_val, nullptr);
+  EXPECT_EQ(extra_val[0], '[') << "Extra sequence should be encoded as JSON array, got: " << extra_val;
+
+  // Verify round-trip
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  ASSERT_TRUE(result->extra.IsSequence());
+  ASSERT_EQ(result->extra.size(), 3u);
+  EXPECT_EQ(result->extra[0].as<std::string>(), "item1");
+  EXPECT_EQ(result->extra[2].as<std::string>(), "item3");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsTest, AllFieldTypesRoundTrip)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  NodeRegistrationOptions opts;
+  opts.class_name = "my_pkg::MyClass";                     // string scalar
+  opts.description = "A comprehensive test node";          // string scalar
+  opts.topic = "/my/action_server";                        // string scalar
+  opts.logger_level = "debug";                             // string scalar
+  opts.wait_timeout = std::chrono::duration<double>(5.0);  // numeric scalar
+  opts.request_timeout = std::chrono::duration<double>(1.5);
+  opts.allow_unreachable = true;                        // bool scalar
+  opts.hidden_ports = {"port_a", "port_b"};             // sequence
+  opts.port_alias = {{"old_in", "new_in"}};             // map
+  opts.port_default = {{"my_out", "42"}};               // map
+  opts.extra = YAML::Load("{mode: fast, retries: 3}");  // map (any YAML)
+  node.setInlineRegistrationOptions(opts);
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, opts.class_name);
+  EXPECT_EQ(result->description, opts.description);
+  EXPECT_EQ(result->topic, opts.topic);
+  EXPECT_EQ(result->logger_level, opts.logger_level);
+  EXPECT_DOUBLE_EQ(result->wait_timeout.count(), opts.wait_timeout.count());
+  EXPECT_DOUBLE_EQ(result->request_timeout.count(), opts.request_timeout.count());
+  EXPECT_EQ(result->allow_unreachable, opts.allow_unreachable);
+  ASSERT_EQ(result->hidden_ports.size(), 2u);
+  EXPECT_EQ(result->hidden_ports[0], "port_a");
+  EXPECT_EQ(result->hidden_ports[1], "port_b");
+  ASSERT_EQ(result->port_alias.size(), 1u);
+  EXPECT_EQ(result->port_alias.at("old_in"), "new_in");
+  ASSERT_EQ(result->port_default.size(), 1u);
+  EXPECT_EQ(result->port_default.at("my_out"), "42");
+  ASSERT_TRUE(result->extra.IsMap());
+  EXPECT_EQ(result->extra["mode"].as<std::string>(), "fast");
+  EXPECT_EQ(result->extra["retries"].as<int>(), 3);
+}

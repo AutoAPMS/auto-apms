@@ -156,6 +156,7 @@ public:
   static inline const char INCLUDE_ELEMENT_NAME[] = "include";
   static inline const char INCLUDE_PATH_ATTRIBUTE_NAME[] = "path";
   static inline const char INCLUDE_ROS_PKG_ATTRIBUTE_NAME[] = "ros_pkg";
+  static inline const char INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX[] = "_autoapms_node__";
 
   class TreeElement;
 
@@ -706,6 +707,22 @@ public:
     PortValues getPorts() const;
 
     /**
+     * @brief Extract the node registration options by parsing the attributes of this node element.
+     *
+     * Each XML element representing a behavior tree node may have its options for registrering the underlying
+     * implementation encoded in its attributes. This method parses these attributes and returns the corresponding
+     * NodeRegistrationOptions object if they are present. It returns `std::nullopt` if
+     *
+     * - no registration options are found, or
+     *
+     * - the given registration options are invalid, e.g. because the required fields are missing or they cannot
+     * be parsed successfully.
+     *
+     * @return NodeRegistrationOptions object if valid registration options are found, `std::nullopt` otherwise.
+     */
+    std::optional<NodeRegistrationOptions> getInlineRegistrationOptions() const;
+
+    /**
      * @brief Populate the the node's data ports.
      *
      * This method verifies that @p port_values only refers to implemented ports and throws an exception if any
@@ -719,6 +736,18 @@ public:
      * names for ports that are not implemented.
      */
     NodeElement & setPorts(const PortValues & port_values);
+
+    /**
+     * @brief Encode the given node registration options as attributes of this node element.
+     *
+     * Each XML element representing a behavior tree node may have its options for registrering the underlying
+     * implementation encoded in its attributes. This method encodes the given registration options as attributes of
+     * this node element. If the given options are invalid, e.g. because required fields are missing, an exception is
+     * raised.
+     *
+     * @return Reference to the modified instance.
+     */
+    NodeElement & setInlineRegistrationOptions(const NodeRegistrationOptions & registration_options);
 
     /**
      * @brief Delete all currently specified port values and reset with the defaults.
