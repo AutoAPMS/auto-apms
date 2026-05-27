@@ -1,0 +1,20 @@
+# Test manifest for verifying the node manifest parent field resolution pipeline.
+#
+# Each entry uses the `parent` field to inherit registration options from a node in the
+# installed `auto_apms_behavior_tree::behavior_tree_nodes` manifest. The parent reference
+# is resolved when the manifest is processed (build time) via `create_node_manifest`.
+
+# Inherits all options from Logger (only class_name and description set in parent).
+TestLogger:
+  parent: auto_apms_behavior_tree::behavior_tree_nodes.Logger
+
+# Inherits class_name from Logger and overrides description and topic.
+CustomLogger:
+  parent: auto_apms_behavior_tree::behavior_tree_nodes.Logger
+  description: Custom logger for testing
+  topic: /custom/log
+
+# Inherits class_name from Error and overrides description.
+CustomError:
+  parent: auto_apms_behavior_tree::behavior_tree_nodes.Error
+  description: Custom error for testing

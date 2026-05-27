@@ -372,3 +372,87 @@ TEST_F(NodeRegistrationTest, RegisterNodesAndBuildTreeChaining)
   auto result = doc_->verify();
   EXPECT_TRUE(result);
 }
+
+// =============================================================================
+// Parent Field Integration Tests (via installed test_node_manifest resource)
+//
+// The test manifest `test/resource/test_node_manifest.yaml` is registered with
+// `auto_apms_behavior_tree_register_nodes` and processed at build time by the
+// `create_node_manifest` CLI tool. Parent fields are resolved during that step
+// (NodeManifest::add → resolveParent). These tests verify the full pipeline:
+// YAML authoring → build-time resolution → installed resource → runtime loading.
+// =============================================================================
+
+TEST(ParentFieldIntegrationTest, LoadTestManifestFromResource)
+{
+  ASSERT_NO_THROW(
+    NodeManifest::fromResource(NodeManifestResourceIdentity("auto_apms_behavior_tree::test_node_manifest")));
+}
+
+TEST(ParentFieldIntegrationTest, TestLoggerInheritsClassNameFromLogger)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("TestLogger"));
+  EXPECT_EQ(manifest["TestLogger"].class_name, "auto_apms_behavior_tree::Logger");
+}
+
+TEST(ParentFieldIntegrationTest, TestLoggerInheritsDescriptionFromLogger)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("TestLogger"));
+  EXPECT_EQ(manifest["TestLogger"].description, "Logs a message to the ROS2 logging system");
+}
+
+TEST(ParentFieldIntegrationTest, TestLoggerInheritsTopicFromLogger)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("TestLogger"));
+  EXPECT_EQ(manifest["TestLogger"].topic, "(input:topic)");
+}
+
+TEST(ParentFieldIntegrationTest, CustomLoggerInheritsClassNameFromLogger)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("CustomLogger"));
+  EXPECT_EQ(manifest["CustomLogger"].class_name, "auto_apms_behavior_tree::Logger");
+}
+
+TEST(ParentFieldIntegrationTest, CustomLoggerOverridesDescription)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("CustomLogger"));
+  EXPECT_EQ(manifest["CustomLogger"].description, "Custom logger for testing");
+}
+
+TEST(ParentFieldIntegrationTest, CustomLoggerOverridesTopic)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("CustomLogger"));
+  EXPECT_EQ(manifest["CustomLogger"].topic, "/custom/log");
+}
+
+TEST(ParentFieldIntegrationTest, CustomErrorInheritsClassNameFromError)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("CustomError"));
+  EXPECT_EQ(manifest["CustomError"].class_name, "auto_apms_behavior_tree::ThrowException");
+}
+
+TEST(ParentFieldIntegrationTest, CustomErrorOverridesDescription)
+{
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_TRUE(manifest.contains("CustomError"));
+  EXPECT_EQ(manifest["CustomError"].description, "Custom error for testing");
+}
+
+TEST(ParentFieldIntegrationTest, ResolvedManifestCanRegisterNodes)
+{
+  TreeDocument doc;
+  const auto manifest = NodeManifest::fromResource("auto_apms_behavior_tree::test_node_manifest");
+  ASSERT_NO_THROW(doc.registerNodes(manifest));
+
+  const auto registered = doc.getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count("TestLogger"), 1u);
+  EXPECT_EQ(registered.count("CustomLogger"), 1u);
+  EXPECT_EQ(registered.count("CustomError"), 1u);
+}

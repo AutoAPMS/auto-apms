@@ -352,6 +352,12 @@ if(BUILD_TESTING)
     "test/resource/test_tree.xml"
   )
 
+  # Register a test node manifest that uses the parent field, for testing the
+  # full parent resolution pipeline end-to-end.
+  auto_apms_behavior_tree_register_nodes(test_node_manifest
+    NODE_MANIFEST "test/resource/test_node_manifest.yaml"
+  )
+
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/build_handler.cpp"
     "test/unit/node_registration.cpp"
