@@ -30,17 +30,18 @@ namespace auto_apms_behavior_tree::core
  */
 struct NodeRegistrationOptions
 {
-  static const std::string PARAM_NAME_CLASS;
-  static const std::string PARAM_NAME_ROS2TOPIC;
-  static const std::string PARAM_NAME_DESCRIPTION;
-  static const std::string PARAM_NAME_PORT_ALIAS;
-  static const std::string PARAM_NAME_PORT_DEFAULT;
-  static const std::string PARAM_NAME_WAIT_TIMEOUT;
-  static const std::string PARAM_NAME_REQUEST_TIMEOUT;
-  static const std::string PARAM_NAME_ALLOW_UNREACHABLE;
-  static const std::string PARAM_NAME_LOGGER_LEVEL;
-  static const std::string PARAM_NAME_HIDDEN_PORTS;
-  static const std::string PARAM_NAME_EXTRA;
+  inline static const std::string PARAM_NAME_CLASS = "class_name";
+  inline static const std::string PARAM_NAME_ROS2TOPIC = "topic";
+  inline static const std::string PARAM_NAME_DESCRIPTION = "description";
+  inline static const std::string PARAM_NAME_PORT_ALIAS = "port_alias";
+  inline static const std::string PARAM_NAME_PORT_DEFAULT = "port_default";
+  inline static const std::string PARAM_NAME_WAIT_TIMEOUT = "wait_timeout";
+  inline static const std::string PARAM_NAME_REQUEST_TIMEOUT = "request_timeout";
+  inline static const std::string PARAM_NAME_ALLOW_UNREACHABLE = "allow_unreachable";
+  inline static const std::string PARAM_NAME_LOGGER_LEVEL = "logger_level";
+  inline static const std::string PARAM_NAME_HIDDEN_PORTS = "hidden_ports";
+  inline static const std::string PARAM_NAME_EXTRA = "extra";
+  inline static const std::string PARAM_NAME_PARENT = "parent";
 
   /**
    * @brief Create the default node registration options.
@@ -111,9 +112,9 @@ struct NodeRegistrationOptions
   std::vector<std::string> hidden_ports = {};
   /// Period [s] (measured from tree construction) after the server is considered unreachable. For publishers, this
   /// parameter defines how long to wait for at least one subscriber to connect.
-  std::chrono::duration<double> wait_timeout = std::chrono::duration<double>(3);
+  std::chrono::duration<double> wait_timeout = std::chrono::duration<double>(5);
   /// Period [s] (measured from sending a goal request) after the node aborts waiting for a server response.
-  std::chrono::duration<double> request_timeout = std::chrono::duration<double>(2);
+  std::chrono::duration<double> request_timeout = std::chrono::duration<double>(5);
   /// Flag whether to tolerate if the action/service is unreachable when trying to create the client. If set to
   /// `true`, a warning is logged. Otherwise, an exception is raised.
   bool allow_unreachable = false;
@@ -143,138 +144,8 @@ template <>
 struct convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>
 {
   using Options = auto_apms_behavior_tree::core::NodeRegistrationOptions;
-  inline static Node encode(const Options & rhs)
-  {
-    Node node(NodeType::Map);
-    node[Options::PARAM_NAME_CLASS] = rhs.class_name;
-    node[Options::PARAM_NAME_DESCRIPTION] = rhs.description;
-    node[Options::PARAM_NAME_ROS2TOPIC] = rhs.topic;
-    node[Options::PARAM_NAME_PORT_ALIAS] = rhs.port_alias;
-    node[Options::PARAM_NAME_PORT_DEFAULT] = rhs.port_default;
-    node[Options::PARAM_NAME_HIDDEN_PORTS] = rhs.hidden_ports;
-    node[Options::PARAM_NAME_WAIT_TIMEOUT] = rhs.wait_timeout.count();
-    node[Options::PARAM_NAME_REQUEST_TIMEOUT] = rhs.request_timeout.count();
-    node[Options::PARAM_NAME_ALLOW_UNREACHABLE] = rhs.allow_unreachable;
-    node[Options::PARAM_NAME_LOGGER_LEVEL] = rhs.logger_level;
-    node[Options::PARAM_NAME_EXTRA] = rhs.extra;
-    return node;
-  }
-  inline static bool decode(const Node & node, Options & rhs)
-  {
-    if (!node.IsMap())
-      throw auto_apms_util::exceptions::YAMLFormatError(
-        "YAML::Node for auto_apms_behavior_tree::core::NodeRegistrationOptions must be map but is type " +
-        std::to_string(node.Type()) + " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-
-    for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
-      const std::string key = it->first.as<std::string>();
-      const Node val = it->second;
-
-      if (key == Options::PARAM_NAME_EXTRA) {
-        // Any valid yaml is allowed as extra options
-        rhs.extra = val;
-        continue;
-      }
-
-      if (key == Options::PARAM_NAME_PORT_ALIAS) {
-        if (!val.IsMap()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be a map but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.port_alias = val.as<std::map<std::string, std::string>>();
-        continue;
-      }
-
-      if (key == Options::PARAM_NAME_PORT_DEFAULT) {
-        if (!val.IsMap()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be a map but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.port_default = val.as<std::map<std::string, std::string>>();
-        continue;
-      }
-
-      if (key == Options::PARAM_NAME_HIDDEN_PORTS) {
-        if (!val.IsSequence()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be a sequence but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.hidden_ports = val.as<std::vector<std::string>>();
-        continue;
-      }
-
-      if (key == Options::PARAM_NAME_CLASS) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.class_name = val.as<std::string>();
-        continue;
-      }
-      if (key == Options::PARAM_NAME_DESCRIPTION) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.description = val.as<std::string>();
-        continue;
-      }
-      if (key == Options::PARAM_NAME_ROS2TOPIC) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.topic = val.as<std::string>();
-        continue;
-      }
-      if (key == Options::PARAM_NAME_WAIT_TIMEOUT) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.wait_timeout = std::chrono::duration<double>(val.as<double>());
-        continue;
-      }
-      if (key == Options::PARAM_NAME_REQUEST_TIMEOUT) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.request_timeout = std::chrono::duration<double>(val.as<double>());
-        continue;
-      }
-      if (key == Options::PARAM_NAME_ALLOW_UNREACHABLE) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.allow_unreachable = val.as<bool>();
-        continue;
-      }
-      if (key == Options::PARAM_NAME_LOGGER_LEVEL) {
-        if (!val.IsScalar()) {
-          throw auto_apms_util::exceptions::YAMLFormatError(
-            "Value for key '" + key + "' must be scalar but is type " + std::to_string(val.Type()) +
-            " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
-        }
-        rhs.logger_level = val.as<std::string>();
-        continue;
-      }
-
-      // Unknown parameter
-      throw auto_apms_util::exceptions::YAMLFormatError("Unknown parameter name '" + key + "'.");
-    }
-    return true;
-  }
+  static Node encode(const Options & rhs);
+  static bool decode(const Node & node, Options & rhs);
 };
 
 }  // namespace YAML

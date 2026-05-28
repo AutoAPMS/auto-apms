@@ -164,6 +164,12 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
 
       "${PROJECT_NAME}"  # Name of the package that builds the behavior tree model
       "${_generated_node_manifest_abs_path__build}"  # File to write the behavior tree node plugin manifest to
+
+      # Previously generated manifests from this package (metadata_id|absolute_path pairs, ';'-separated).
+      # Passed so create_node_manifest can resolve parent references to same-package manifests that are not
+      # yet installed in the ament index at configure time.
+      "${_AUTO_APMS_BEHAVIOR_TREE_CORE__GENERATED_MANIFEST_ENTRIES}"
+
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     OUTPUT_VARIABLE _create_node_manifest_output
     RESULT_VARIABLE _return_code
@@ -178,6 +184,10 @@ Output file: ${_generated_node_manifest_abs_path__build}
 ${_error}"
 )
   endif()
+
+  # Accumulate the generated manifest path for subsequent create_node_manifest calls in this package so they
+  # can resolve parent references to manifests from the same package (which are not in the ament index yet).
+  list(APPEND _AUTO_APMS_BEHAVIOR_TREE_CORE__GENERATED_MANIFEST_ENTRIES "${metadata_id}|${_generated_node_manifest_abs_path__build}")
 
   # Parse the two-line output from create_node_manifest:
   #   Line 1: library paths (semicolon-separated)
