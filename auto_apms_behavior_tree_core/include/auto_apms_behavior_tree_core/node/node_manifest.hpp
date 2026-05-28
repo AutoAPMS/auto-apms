@@ -155,7 +155,7 @@ public:
   static NodeManifest fromFiles(const std::vector<std::string> & paths);
 
   /**
-   * @brief Create a node manifest from an installed resource.
+   * @brief Create a node manifest from a resource insinde the process-local lookup table or the ament index.
    * @param search_identity Node manifest resource identity used for searching the corresponding resource.
    * @return Node manifest created from the corresponding resource.
    * @throw auto_apms_util::exceptions::ResourceIdentityFormatError if @p identity has wrong format.
@@ -166,8 +166,8 @@ public:
   /**
    * @brief Register a manifest in the process-local lookup table.
    *
-   * `fromResource()` checks this table before querying the ament index, which allows developers to also register
-   * manifests without relying on the ament index.
+   * NodeManifest::fromResource checks this table before querying the ament index, which allows developers to also
+   * register manifests without relying on the ament index.
    * @param id Identity under which the manifest is registered.
    * @param manifest Manifest to store.
    * @param allow_override If `false` (default), throws when @p id is already present in the ament index.
