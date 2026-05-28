@@ -31,6 +31,7 @@ namespace YAML
 Node convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>::encode(const Options & rhs)
 {
   Node node(NodeType::Map);
+  // Note: We intentionally do not encode the 'parent' field, since we directly evaluate it during decoding
   node[Options::PARAM_NAME_CLASS] = rhs.class_name;
   node[Options::PARAM_NAME_DESCRIPTION] = rhs.description;
   node[Options::PARAM_NAME_ROS2TOPIC] = rhs.topic;

@@ -164,6 +164,21 @@ public:
   static NodeManifest fromResource(const NodeManifestResourceIdentity & search_identity);
 
   /**
+   * @brief Register a manifest in the process-local lookup table.
+   *
+   * `fromResource()` checks this table before querying the ament index, which allows developers to also register
+   * manifests without relying on the ament index.
+   * @param id Identity under which the manifest is registered.
+   * @param manifest Manifest to store.
+   * @param allow_override If `false` (default), throws when @p id is already present in the ament index.
+   *   Set to `true` to allow the local entry to shadow an installed resource.
+   * @throw exceptions::NodeManifestError if @p id is already registered locally, or if @p id resolves to
+   *   an existing ament index resource and @p allow_override is `false`.
+   */
+  static void registerLocalManifest(
+    const NodeManifestResourceIdentity & id, const NodeManifest & manifest, bool allow_override = false);
+
+  /**
    * @brief Write the node manifest to a file.
    * @param file_path Path to the target file.
    * @throw auto_apms_behavior_tree::exceptions::NodeManifestError if file cannot be opened.

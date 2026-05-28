@@ -31,9 +31,11 @@ int main(int argc, char ** argv)
                  "node manifest files (separated by ';').\n\t2.) Build information for nodes supposed to be "
                  "registered during build time (List of '<class_name>@<library_build_path>@<registration_type>' "
                  "separated by ';').\n\t3.) The name of the package that provides the build targets.\n\t4.) Output "
-                 "file for the complete node plugin manifest.\n\t";
+                 "file for the complete node plugin manifest.\n\t5.) (optional) Previously generated manifest "
+                 "entries from the same package for build-time parent resolution "
+                 "(List of '<metadata_id>|<absolute_path>' separated by ';').\n\t";
     std::cerr << "Usage: create_node_manifest <manifest_files> <build_infos> <build_package_name> "
-                 "<output_file>\n";
+                 "<output_file> [<local_manifest_entries>]\n";
     return EXIT_FAILURE;
   }
 
@@ -79,6 +81,26 @@ int main(int argc, char ** argv)
       library_paths_build_package[class_name] = build_path;              // {class_name: build_path}
       registration_types_build_package[class_name] = registration_type;  // {class_name: registration_type}
       reserved_names[class_name] = build_package_name;                   // Additional names for the ambiguity check
+    }
+
+    // Pre-register same-package manifests generated in earlier calls so that decode() can resolve
+    // parent references to them without hitting the ament index (which doesn't have them yet).
+    if (argc >= 6) {
+      for (const auto & entry : auto_apms_util::splitString(argv[5], ";")) {
+        const auto parts = auto_apms_util::splitString(entry, "|", false);
+        if (parts.size() != 2) continue;
+        const std::string & metadata_id = parts[0];
+        const std::string & file_path = parts[1];
+        if (!std::filesystem::exists(file_path)) continue;
+        try {
+          const std::string identity_str =
+            build_package_name + _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_IDENTITY_ALIAS_SEP + metadata_id;
+          core::NodeManifest::registerLocalManifest(
+            core::NodeManifestResourceIdentity(identity_str), core::NodeManifest::fromFile(file_path));
+        } catch (const std::exception &) {
+          // Skip manifests that fail to load — they'll produce an error later if actually needed.
+        }
+      }
     }
 
     // Construct manifest object from input files

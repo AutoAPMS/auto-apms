@@ -15,6 +15,7 @@
 #include "auto_apms_behavior_tree_core/node/node_manifest.hpp"
 
 #include <fstream>
+#include <map>
 
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
 #include "auto_apms_behavior_tree_core/tree/tree_document.hpp"
@@ -110,8 +111,36 @@ NodeManifest NodeManifest::fromFiles(const std::vector<std::string> & paths)
   return manifest;
 }
 
+namespace
+{
+std::map<NodeManifestResourceIdentity, NodeManifest> s_local_manifests;
+}  // namespace
+
+void NodeManifest::registerLocalManifest(
+  const NodeManifestResourceIdentity & id, const NodeManifest & manifest, bool allow_override)
+{
+  if (!allow_override) {
+    if (s_local_manifests.count(id)) {
+      throw exceptions::NodeManifestError(
+        "Cannot register local manifest '" + id.str() +
+        "': resource is already registered locally. Pass allow_override=true to override it.");
+    }
+    const auto existing_identities = getNodeManifestResourceIdentities();
+    if (existing_identities.count(id)) {
+      throw exceptions::NodeManifestError(
+        "Cannot register local manifest '" + id.str() +
+        "': resource is already registered in the ament index. Pass allow_override=true to override it.");
+    }
+  }
+  s_local_manifests[id] = manifest;
+}
+
 NodeManifest NodeManifest::fromResource(const NodeManifestResourceIdentity & search_identity)
 {
+  // Check the process-local registry first
+  if (const auto it = s_local_manifests.find(search_identity); it != s_local_manifests.end()) {
+    return it->second;
+  }
   return NodeManifestResource(search_identity).getNodeManifest();
 }
 
