@@ -124,7 +124,7 @@ bool convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>::decode(
           "Value for key '" + key + "' must be a map but is type " + std::to_string(val.Type()) +
           " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
       }
-      rhs.port_alias = val.as<std::map<std::string, std::string>>();
+      for (const auto & [k, v] : val.as<std::map<std::string, std::string>>()) rhs.port_alias[k] = v;
       continue;
     }
 
@@ -134,7 +134,7 @@ bool convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>::decode(
           "Value for key '" + key + "' must be a map but is type " + std::to_string(val.Type()) +
           " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
       }
-      rhs.port_default = val.as<std::map<std::string, std::string>>();
+      for (const auto & [k, v] : val.as<std::map<std::string, std::string>>()) rhs.port_default[k] = v;
       continue;
     }
 
@@ -144,7 +144,10 @@ bool convert<auto_apms_behavior_tree::core::NodeRegistrationOptions>::decode(
           "Value for key '" + key + "' must be a sequence but is type " + std::to_string(val.Type()) +
           " (0: Undefined - 1: Null - 2: Scalar - 3: Sequence - 4: Map).");
       }
-      rhs.hidden_ports = val.as<std::vector<std::string>>();
+      for (const auto & entry : val.as<std::vector<std::string>>()) {
+        if (std::find(rhs.hidden_ports.begin(), rhs.hidden_ports.end(), entry) == rhs.hidden_ports.end())
+          rhs.hidden_ports.push_back(entry);
+      }
       continue;
     }
 
