@@ -1083,3 +1083,35 @@ TEST_F(NodeElementSetInlineRegistrationOptionsTest, AllFieldTypesRoundTrip)
   EXPECT_EQ(result->extra["mode"].as<std::string>(), "fast");
   EXPECT_EQ(result->extra["retries"].as<int>(), 3);
 }
+
+TEST(NodeElementPortCacheRefreshTest, ExistingHandleRefreshesAfterLateRegistration)
+{
+  TestableTreeDocument doc;
+
+  const std::string xml =
+    "<root BTCPP_format=\"4\" main_tree_to_execute=\"Main\">"
+    "<BehaviorTree ID=\"Main\">"
+    "<Sequence><LateAction/></Sequence>"
+    "</BehaviorTree>"
+    "</root>";
+
+  doc.mergeString(xml, true);
+  auto node = doc.getRootTree().getFirstNode("Sequence").getFirstNode("LateAction");
+
+  EXPECT_TRUE(node.getPortNames().empty());
+
+  // Register the node after the handle was created — the cache must lazily refresh.
+  // BT::InputPort<T>(name) creates a port without a default value; pass just the name.
+  doc.addTestNode("LateAction", "test::LateAction", {BT::InputPort<std::string>("target")});
+
+  const std::vector<std::string> refreshed_port_names = node.getPortNames();
+  ASSERT_EQ(refreshed_port_names.size(), 1u);
+  EXPECT_EQ(refreshed_port_names[0], "target");
+
+  // No default value → the XML attribute is not written automatically; getPorts() returns empty.
+  EXPECT_TRUE(node.getPorts().empty());
+
+  // After explicitly setting the port, getPorts() reflects the assigned value.
+  node.setPorts({{"target", "overridden"}});
+  EXPECT_EQ(node.getPorts().at("target"), "overridden");
+}
