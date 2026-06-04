@@ -189,7 +189,7 @@ return setPorts({{")" << info.port_name << R"(", str}});
 /// @brief Getter for port ')" << info.port_name << "' (" << BT::toStr(info.port_direction) << R"().
 ///
 /// )" << info.port_description << R"(
-const std::string & get_)" << info.port_name << R"(_str() const
+std::string get_)" << info.port_name << R"(_str() const
 {
 return getPorts().at(")" << info.port_name << R"(");
 }
