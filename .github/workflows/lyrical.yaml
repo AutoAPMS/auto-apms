@@ -1,0 +1,16 @@
+name: Lyrical
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  build_and_test:
+    uses: ./.github/workflows/build-and-test-reusable.yaml
+    with:
+      ros_distribution: lyrical
+      docker_image: ubuntu:resolute
