@@ -13,7 +13,7 @@ jobs:
     uses: ./.github/workflows/build-and-test-reusable.yaml
     with:
       ros_distribution: rolling
-      docker_image: ubuntu:noble
+      docker_image: ubuntu:resolute
 
   update_node_reference:
     name: Update BT Node Reference Docs
@@ -21,7 +21,7 @@ jobs:
     needs: build_and_test # Only run this job after the build_and_test job has completed successfully.
     if: github.event_name == 'push' # Don't run this job on pull requests, only on pushes.
     container:
-      image: ubuntu:noble
+      image: ubuntu:resolute
       env:
         PIP_BREAK_SYSTEM_PACKAGES: 1 # Allow pip to install system packages if needed.
     steps:
