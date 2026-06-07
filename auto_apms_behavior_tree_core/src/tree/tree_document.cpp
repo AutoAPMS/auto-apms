@@ -499,6 +499,17 @@ TreeDocument::NodeElement & TreeDocument::NodeElement::setInlineRegistrationOpti
   return *this;
 }
 
+TreeDocument::NodeElement & TreeDocument::NodeElement::setInlineRegistrationOptions()
+{
+  const std::string name = getRegistrationName();
+  if (!doc_ptr_->registered_nodes_manifest_.contains(name)) {
+    throw exceptions::TreeDocumentError(
+      "Cannot set inline registration options for node '" + getFullyQualifiedName() + "': Node '" + name +
+      "' has not been registered with the parent document.");
+  }
+  return setInlineRegistrationOptions(doc_ptr_->registered_nodes_manifest_[name]);
+}
+
 TreeDocument::NodeElement & TreeDocument::NodeElement::resetPorts()
 {
   refreshPortInfoCache();
@@ -729,6 +740,19 @@ NodeManifest TreeDocument::TreeElement::getRequiredNodeManifest() const
     return false;
   });
   return m;
+}
+
+TreeDocument::TreeElement & TreeDocument::TreeElement::setInlineRegistrationOptions()
+{
+  deepApply([this](NodeElement & node) {
+    const std::string name = node.getRegistrationName();
+    const bool is_native_node = doc_ptr_->native_node_names_.find(name) != doc_ptr_->native_node_names_.end();
+    if (!is_native_node) {
+      node.setInlineRegistrationOptions();
+    }
+    return false;
+  });
+  return *this;
 }
 
 BT::Result TreeDocument::TreeElement::verify() const
@@ -1374,6 +1398,16 @@ NodeManifest TreeDocument::getRequiredNodeManifest(const std::string & tree_name
     m.merge(ele.getRequiredNodeManifest(), true);
   }
   return m;
+}
+
+TreeDocument & TreeDocument::setInlineRegistrationOptions(const std::string & tree_name)
+{
+  const std::vector<std::string> names_to_process =
+    tree_name.empty() ? getAllTreeNames() : std::vector<std::string>{tree_name};
+  for (const std::string & name : names_to_process) {
+    getTree(name).setInlineRegistrationOptions();
+  }
+  return *this;
 }
 
 TreeDocument & TreeDocument::addNodeModel(NodeModelMap model_map)

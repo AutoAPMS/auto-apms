@@ -739,9 +739,24 @@ public:
      * this node element. If the given options are invalid, e.g. because required fields are missing, an exception is
      * raised.
      *
+     * @param registration_options Registration options to encode as attributes of this node element.
      * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if @p registration_options are invalid.
      */
     NodeElement & setInlineRegistrationOptions(const NodeRegistrationOptions & registration_options);
+
+    /**
+     * @brief Encode the registration options for this node element based on the currently registered node manifest.
+     *
+     * This is a convenience overload that automatically looks up the registration options for this node from the
+     * parent document's registered node manifest and encodes them as attributes of this node element. Use the explicit
+     * overload to set custom registration options instead.
+     *
+     * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if this node has no registration options in the
+     * parent document's node manifest, e.g. because it hasn't been registered yet.
+     */
+    NodeElement & setInlineRegistrationOptions();
 
     /**
      * @brief Delete all currently specified port values and reset with the defaults.
@@ -998,6 +1013,21 @@ public:
      * node.
      */
     NodeManifest getRequiredNodeManifest() const;
+
+    /**
+     * @brief Encode the registration options for all nodes in this tree based on the currently registered node
+     * manifest.
+     *
+     * Iterates all non-native nodes inside this behavior tree and encodes the registration options found in the parent
+     * document's registered node manifest as inline attributes of each corresponding node element. This allows the
+     * resulting XML to be self-contained, since the registration options no longer need to be supplied separately at
+     * load time.
+     *
+     * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if any node in this tree has no registration
+     * options in the parent document's node manifest, e.g. because it hasn't been registered yet.
+     */
+    TreeElement & setInlineRegistrationOptions();
 
     /**
      * @brief Verify that this behavior tree is structured correctly and can be created successfully.
@@ -1488,6 +1518,23 @@ public:
    * node.
    */
   NodeManifest getRequiredNodeManifest(const std::string & tree_name = "") const;
+
+  /**
+   * @brief Encode the registration options for all nodes in this document based on the currently registered node
+   * manifest.
+   *
+   * Iterates all non-native nodes inside the specified behavior tree (or all trees if @p tree_name is empty) and
+   * encodes the registration options found in the registered node manifest as inline attributes of each corresponding
+   * node element. This allows the resulting XML to be self-contained, since the registration options no longer need to
+   * be supplied separately at load time.
+   *
+   * @param tree_name Optional name of the tree whose nodes should be processed. If left empty (default), all trees
+   * are processed.
+   * @return Modified tree document.
+   * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if any node in the processed tree(s) has no
+   * registration options in the registered node manifest, e.g. because it hasn't been registered yet.
+   */
+  TreeDocument & setInlineRegistrationOptions(const std::string & tree_name = "");
 
   /**
    * @brief Add a behavior tree node model element to the document by parsing the contents of @p model_map.

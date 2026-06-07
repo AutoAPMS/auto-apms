@@ -1084,6 +1084,199 @@ TEST_F(NodeElementSetInlineRegistrationOptionsTest, AllFieldTypesRoundTrip)
   EXPECT_EQ(result->extra["retries"].as<int>(), 3);
 }
 
+// =============================================================================
+// setInlineRegistrationOptions (no-arg) Tests
+// =============================================================================
+
+class NodeElementSetInlineRegistrationOptionsNoArgTest : public ::testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    doc_ = std::make_unique<TestableTreeDocument>();
+    doc_->addTestNode("TestAction");
+  }
+
+  std::unique_ptr<TestableTreeDocument> doc_;
+};
+
+TEST_F(NodeElementSetInlineRegistrationOptionsNoArgTest, UsesManifestOptions)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  EXPECT_NO_THROW(node.setInlineRegistrationOptions());
+
+  auto result = node.getInlineRegistrationOptions();
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->class_name, "test::TestClass");
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsNoArgTest, ThrowsWhenNotRegistered)
+{
+  // Merge a tree that contains a node absent from the manifest
+  doc_->mergeString(
+    "<BehaviorTree ID=\"TestTree\">"
+    "<Sequence><UnregisteredNode/></Sequence>"
+    "</BehaviorTree>",
+    true);
+  auto unregistered = doc_->getRootTree().getFirstNode("UnregisteredNode", "", true);
+
+  EXPECT_THROW(unregistered.setInlineRegistrationOptions(), exceptions::TreeDocumentError);
+}
+
+TEST_F(NodeElementSetInlineRegistrationOptionsNoArgTest, ReturnsSelfForChaining)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  auto node = sequence.insertNode("TestAction");
+
+  auto & ref = node.setInlineRegistrationOptions();
+  EXPECT_EQ(&ref, &node);
+}
+
+// =============================================================================
+// TreeElement::setInlineRegistrationOptions Tests
+// =============================================================================
+
+class TreeElementSetInlineRegistrationOptionsTest : public ::testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    doc_ = std::make_unique<TestableTreeDocument>();
+    doc_->addTestNode("TestAction1");
+    doc_->addTestNode("TestAction2");
+  }
+
+  std::unique_ptr<TestableTreeDocument> doc_;
+};
+
+TEST_F(TreeElementSetInlineRegistrationOptionsTest, EncodesOptionsForAllPluginNodes)
+{
+  auto tree = doc_->newTree("TestTree");
+  auto sequence = tree.insertNode("Sequence");
+  sequence.insertNode("TestAction1");
+  sequence.insertNode("TestAction2");
+
+  EXPECT_NO_THROW(tree.setInlineRegistrationOptions());
+
+  tree.deepApplyConst([](const TreeDocument::NodeElement & node) {
+    const std::string name = node.getRegistrationName();
+    // Native nodes (Sequence) must not have inline options
+    if (name == "Sequence") {
+      EXPECT_FALSE(node.getInlineRegistrationOptions().has_value());
+    } else {
+      auto result = node.getInlineRegistrationOptions();
+      EXPECT_TRUE(result.has_value()) << "Expected inline options on node: " << name;
+    }
+    return false;
+  });
+}
+
+TEST_F(TreeElementSetInlineRegistrationOptionsTest, SkipsNativeNodes)
+{
+  auto tree = doc_->newTree("TestTree");
+  tree.insertNode("Sequence");
+
+  EXPECT_NO_THROW(tree.setInlineRegistrationOptions());
+
+  auto seq = tree.getFirstNode("Sequence");
+  EXPECT_FALSE(seq.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(TreeElementSetInlineRegistrationOptionsTest, ThrowsWhenAnyNodeUnregistered)
+{
+  doc_->mergeString(
+    "<BehaviorTree ID=\"TestTree\">"
+    "<Sequence><TestAction1/><UnregisteredNode/></Sequence>"
+    "</BehaviorTree>",
+    true);
+
+  EXPECT_THROW(doc_->getRootTree().setInlineRegistrationOptions(), exceptions::TreeDocumentError);
+}
+
+TEST_F(TreeElementSetInlineRegistrationOptionsTest, ReturnsSelfForChaining)
+{
+  auto tree = doc_->newTree("TestTree");
+  tree.insertNode("Sequence");
+
+  auto & ref = tree.setInlineRegistrationOptions();
+  EXPECT_EQ(&ref, &tree);
+}
+
+// =============================================================================
+// TreeDocument::setInlineRegistrationOptions Tests
+// =============================================================================
+
+class TreeDocumentSetInlineRegistrationOptionsTest : public ::testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    doc_ = std::make_unique<TestableTreeDocument>();
+    doc_->addTestNode("TestAction1");
+    doc_->addTestNode("TestAction2");
+  }
+
+  std::unique_ptr<TestableTreeDocument> doc_;
+};
+
+TEST_F(TreeDocumentSetInlineRegistrationOptionsTest, ProcessesAllTreesByDefault)
+{
+  auto tree1 = doc_->newTree("Tree1");
+  tree1.insertNode("Sequence").insertNode("TestAction1");
+  auto tree2 = doc_->newTree("Tree2");
+  tree2.insertNode("Sequence").insertNode("TestAction2");
+
+  EXPECT_NO_THROW(doc_->setInlineRegistrationOptions());
+
+  auto node1 = doc_->getTree("Tree1").getFirstNode("TestAction1", "", true);
+  EXPECT_TRUE(node1.getInlineRegistrationOptions().has_value());
+  auto node2 = doc_->getTree("Tree2").getFirstNode("TestAction2", "", true);
+  EXPECT_TRUE(node2.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(TreeDocumentSetInlineRegistrationOptionsTest, ProcessesOnlySpecifiedTree)
+{
+  auto tree1 = doc_->newTree("Tree1");
+  tree1.insertNode("Sequence").insertNode("TestAction1");
+  auto tree2 = doc_->newTree("Tree2");
+  tree2.insertNode("Sequence").insertNode("TestAction2");
+
+  EXPECT_NO_THROW(doc_->setInlineRegistrationOptions("Tree1"));
+
+  // Tree1's node should have inline options
+  auto node1 = doc_->getTree("Tree1").getFirstNode("TestAction1", "", true);
+  EXPECT_TRUE(node1.getInlineRegistrationOptions().has_value());
+
+  // Tree2's node should NOT have inline options
+  auto node2 = doc_->getTree("Tree2").getFirstNode("TestAction2", "", true);
+  EXPECT_FALSE(node2.getInlineRegistrationOptions().has_value());
+}
+
+TEST_F(TreeDocumentSetInlineRegistrationOptionsTest, ThrowsWhenAnyNodeUnregistered)
+{
+  doc_->mergeString(
+    "<BehaviorTree ID=\"TestTree\">"
+    "<Sequence><TestAction1/><UnregisteredNode/></Sequence>"
+    "</BehaviorTree>",
+    true);
+
+  EXPECT_THROW(doc_->setInlineRegistrationOptions(), exceptions::TreeDocumentError);
+}
+
+TEST_F(TreeDocumentSetInlineRegistrationOptionsTest, ReturnsSelfForChaining)
+{
+  doc_->newTree("TestTree").insertNode("Sequence").insertNode("TestAction1");
+
+  auto & ref = doc_->setInlineRegistrationOptions();
+  EXPECT_EQ(&ref, doc_.get());
+}
+
+// =============================================================================
+
 TEST(NodeElementPortCacheRefreshTest, ExistingHandleRefreshesAfterLateRegistration)
 {
   TestableTreeDocument doc;
