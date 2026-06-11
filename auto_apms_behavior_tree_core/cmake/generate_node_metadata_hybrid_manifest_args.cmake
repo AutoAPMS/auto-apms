@@ -31,13 +31,20 @@
 #   that defines model classes for all behavior tree nodes specified inside the node manifest
 #   files and add it to the includes of the given target.
 # :type NODE_MODEL_HEADER_TARGET: string
+# :param FORCE_GENERATE_NODE_MANIFEST: Option. If set, a new combined node manifest is always
+#   generated and registered under metadata_id, even when all provided manifest references already
+#   exist as resources. This is required by callers that rely on metadata_id being registered as a
+#   resource (e.g. auto_apms_behavior_tree_register_nodes composing a manifest from existing
+#   ones). Callers that only need the resolved install paths (e.g. register_behavior) should
+#   leave this unset to reuse existing metadata without regenerating it.
+# :type FORCE_GENERATE_NODE_MANIFEST: option
 #
 # @public
 #
 macro(auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args metadata_id)
 
   # Parse keyword arguments
-  set(options "")
+  set(options FORCE_GENERATE_NODE_MANIFEST)
   set(oneValueArgs NODE_MODEL_HEADER_TARGET)
   set(multiValueArgs "")
   cmake_parse_arguments(_generate_node_metadata_hybrid_manifest_args_ "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -140,7 +147,7 @@ macro(auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args metada
       set(_auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args__node_manifest_rel_paths__install "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_DIR_RELATIVE__METADATA}/node_manifest_${metadata_id}.yaml")
     else()
       list(LENGTH _generate_metadata_inputs _generate_metadata_inputs_length)
-      if("${_generate_metadata_inputs_length}" EQUAL "${_matching_existing_metadata_count}")
+      if("${_generate_metadata_inputs_length}" EQUAL "${_matching_existing_metadata_count}" AND NOT _generate_node_metadata_hybrid_manifest_args__FORCE_GENERATE_NODE_MANIFEST)
         # We don't have to generate anything because all required node manifests have already been generated.
         foreach(_node_manifest_path ${_generate_metadata_inputs})
           if("${_node_manifest_path}" IN_LIST _existing_node_manifest_abs_paths__build)

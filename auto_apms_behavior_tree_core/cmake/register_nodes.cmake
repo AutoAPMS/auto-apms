@@ -168,11 +168,15 @@ macro(auto_apms_behavior_tree_register_nodes target)
     endif()
 
     # Generate node metadata for the specified manifests and optionally generate a node model header.
+    # FORCE_GENERATE_NODE_MANIFEST ensures the combined manifest is always registered as a resource
+    # under metadata_id, even when every NODE_MANIFEST entry is an already-existing resource identity.
+    # register_nodes relies on this resource being registered (it ignores the resolved install paths).
     auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args(
       "${metadata_id}"
       ${_register_nodes__NODE_MANIFEST}
       NODE_MODEL_HEADER_TARGET
       "${_register_nodes__NODE_MODEL_HEADER_TARGET}"
+      FORCE_GENERATE_NODE_MANIFEST
     )
   endif()
 
