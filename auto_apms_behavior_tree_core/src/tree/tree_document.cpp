@@ -27,6 +27,7 @@
 #include "auto_apms_util/logging.hpp"
 #include "auto_apms_util/string.hpp"
 #include "behaviortree_cpp/xml_parsing.h"
+#include "yaml-cpp/yaml.h"
 
 namespace auto_apms_behavior_tree::core
 {
@@ -57,6 +58,40 @@ std::vector<std::string> getAllTreeNamesImpl(const tinyxml2::XMLDocument & doc)
   return names;
 }
 
+bool hasInlineRegistrationOptions(const tinyxml2::XMLElement * ele)
+{
+  for (const tinyxml2::XMLAttribute * attr = ele->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+    if (std::string_view(attr->Name()).rfind(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX, 0) == 0)
+      return true;
+  }
+  return false;
+}
+
+std::optional<NodeRegistrationOptions> parseInlineRegistrationOptions(const tinyxml2::XMLElement * ele)
+{
+  YAML::Node reg_opts_node(YAML::NodeType::Map);
+
+  for (const tinyxml2::XMLAttribute * attr = ele->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+    if (const std::string attr_name = attr->Name();
+        attr_name.rfind(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX, 0) == 0) {
+      const std::string option_name =
+        attr_name.substr(strlen(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX));
+      try {
+        reg_opts_node[option_name] = YAML::Load(attr->Value());
+      } catch (const std::exception &) {
+        return std::nullopt;
+      }
+    }
+  }
+
+  try {
+    NodeRegistrationOptions options = reg_opts_node.as<NodeRegistrationOptions>();
+    return options.valid() ? std::optional(options) : std::nullopt;
+  } catch (const std::exception &) {
+    return std::nullopt;
+  }
+}
+
 TreeDocument::NodeElement::NodeElement(TreeDocument * doc_ptr, XMLElement * ele_ptr)
 : doc_ptr_(doc_ptr), ele_ptr_(ele_ptr)
 {
@@ -66,25 +101,51 @@ TreeDocument::NodeElement::NodeElement(TreeDocument * doc_ptr, XMLElement * ele_
   if (!ele_ptr) {
     throw exceptions::TreeDocumentError("Cannot create an instance of NodeElement with ele_ptr=nullptr.");
   }
+
+  // There only is a model for this node if a corresponding plugin has been registered previsouly. So if the
+  // constructor is called e.g. before the document registered the respective node, that's not the case and for example
+  // getPorts() or setPorts() won't work as expected. This is a deliberate design decision though. We want the
+  // constructor to be cheap, tolerant, and it shouldn't have registration side effects. It's the developer's
+  // responsibility to coordinate registration properly. IMPORTANT: We must not throw here, since the constructor must
+  // also succeed for the derived TreeElement class for which there is no node model and getPorts() and setPorts() is
+  // deleted anyways. Additionally, we want to allow traversing a document with unregistered nodes.
+  refreshPortInfoCache();
+}
+
+void TreeDocument::NodeElement::refreshPortInfoCache() const
+{
   const NodeModelMap model = doc_ptr_->getNodeModel(true);
   NodeModelMap::const_iterator it = model.find(ele_ptr_->Name());
-  std::vector<NodePortInfo> port_infos_str_vec;
-  if (it != model.end()) port_infos_str_vec = it->second.port_infos;
 
-  // There should always be a corresponding element in the nodes model. However, if the constructor is called e.g.
-  // before the document registered the respective node, that's not the case and setPorts() won't work as expected.
-  // Therefore, we must ensure that all factory methods for a NodeElement verify that the node is known to the document
-  // before creating an instance. NOTE: We must not throw, since the constructor must also succeed for the derived
-  // TreeElement class for which there is no node model and setPorts() is deleted anyways.
-  if (!port_infos_str_vec.empty()) {
+  std::vector<std::string> refreshed_port_names;
+  PortValues refreshed_port_default_values;
+  if (it != model.end()) {
+    const std::vector<NodePortInfo> & port_infos_str_vec = it->second.port_infos;
+    refreshed_port_names.reserve(port_infos_str_vec.size());
     for (const NodePortInfo & port_info : port_infos_str_vec) {
-      port_names_.push_back(port_info.port_name);
-      if (!port_info.port_default.empty()) port_default_values_[port_info.port_name] = port_info.port_default;
+      refreshed_port_names.push_back(port_info.port_name);
+      if (!port_info.port_default.empty()) {
+        refreshed_port_default_values[port_info.port_name] = port_info.port_default;
+      }
     }
+  }
 
-    // Set the node's attributes according to the default values for all the ports that have a default value and have
-    // not been set previously.
-    PortValues existing_port_values = getPorts();
+  if (refreshed_port_names == port_names_ && refreshed_port_default_values == port_default_values_) {
+    return;
+  }
+
+  port_names_ = std::move(refreshed_port_names);
+  port_default_values_ = std::move(refreshed_port_default_values);
+
+  // Set the node's attributes according to the default values for all the ports that have a default value and have
+  // not been set previously.
+  if (!port_default_values_.empty()) {
+    PortValues existing_port_values;
+    for (const tinyxml2::XMLAttribute * attr = ele_ptr_->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+      if (const std::string attr_name = attr->Name(); auto_apms_util::contains(port_names_, attr_name)) {
+        existing_port_values[attr_name] = attr->Value();
+      }
+    }
     for (const auto & [name, val] : port_default_values_) {
       if (existing_port_values.find(name) == existing_port_values.end()) {
         ele_ptr_->SetAttribute(name.c_str(), val.c_str());
@@ -123,12 +184,8 @@ bool TreeDocument::NodeElement::operator!=(const NodeElement & other) const { re
 TreeDocument::NodeElement TreeDocument::NodeElement::insertNode(
   const std::string & name, const NodeElement * before_this)
 {
-  if (const std::set<std::string> names = doc_ptr_->getRegisteredNodeNames(true); names.find(name) == names.end()) {
-    throw exceptions::TreeDocumentError(
-      "Cannot insert unknown node <" + name +
-      ">. Before inserting a new node, the associated document must register the corresponding behavior tree "
-      "node. Consider using a signature of insertNode() that does this automatically.");
-  }
+  // No registration check — the node is inserted unconditionally. Port info is populated lazily
+  // once the node has been registered (consistent with the tolerant NodeElement constructor).
   XMLElement * ele = doc_ptr_->NewElement(name.c_str());
   return insertBeforeImpl(before_this, ele);
 }
@@ -376,10 +433,15 @@ TreeDocument::NodeElement & TreeDocument::NodeElement::removeChildren()
   return *this;
 }
 
-const std::vector<std::string> & TreeDocument::NodeElement::getPortNames() const { return port_names_; }
+const std::vector<std::string> & TreeDocument::NodeElement::getPortNames() const
+{
+  refreshPortInfoCache();
+  return port_names_;
+}
 
 TreeDocument::NodeElement::PortValues TreeDocument::NodeElement::getPorts() const
 {
+  refreshPortInfoCache();
   PortValues values;
   for (const tinyxml2::XMLAttribute * attr = ele_ptr_->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
     if (const std::string attr_name = attr->Name(); auto_apms_util::contains(port_names_, attr_name)) {
@@ -389,8 +451,15 @@ TreeDocument::NodeElement::PortValues TreeDocument::NodeElement::getPorts() cons
   return values;
 }
 
+std::optional<NodeRegistrationOptions> TreeDocument::NodeElement::getInlineRegistrationOptions() const
+{
+  return parseInlineRegistrationOptions(ele_ptr_);
+}
+
 TreeDocument::NodeElement & TreeDocument::NodeElement::setPorts(const PortValues & port_values)
 {
+  refreshPortInfoCache();
+
   // Verify port_values
   std::vector<std::string> unknown_keys;
   for (const auto & [key, _] : port_values) {
@@ -409,8 +478,41 @@ TreeDocument::NodeElement & TreeDocument::NodeElement::setPorts(const PortValues
   return *this;
 }
 
+TreeDocument::NodeElement & TreeDocument::NodeElement::setInlineRegistrationOptions(
+  const NodeRegistrationOptions & registration_options)
+{
+  if (!registration_options.valid()) {
+    throw exceptions::TreeDocumentError(
+      "Cannot set inline registration options for node '" + getFullyQualifiedName() +
+      "': Registration options are invalid.");
+  }
+  const YAML::Node node = YAML::convert<NodeRegistrationOptions>::encode(registration_options);
+  for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
+    const std::string attr_name =
+      std::string(INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) + it->first.as<std::string>();
+    // Use flow notation so that sequences and maps are encoded as compact JSON (e.g. [a, b] / {k: v}),
+    // which is valid YAML and can be parsed back with YAML::Load()
+    YAML::Emitter emitter;
+    emitter << YAML::Flow << it->second;
+    ele_ptr_->SetAttribute(attr_name.c_str(), emitter.c_str());
+  }
+  return *this;
+}
+
+TreeDocument::NodeElement & TreeDocument::NodeElement::setInlineRegistrationOptions()
+{
+  const std::string name = getRegistrationName();
+  if (!doc_ptr_->registered_nodes_manifest_.contains(name)) {
+    throw exceptions::TreeDocumentError(
+      "Cannot set inline registration options for node '" + getFullyQualifiedName() + "': Node '" + name +
+      "' has not been registered with the parent document.");
+  }
+  return setInlineRegistrationOptions(doc_ptr_->registered_nodes_manifest_[name]);
+}
+
 TreeDocument::NodeElement & TreeDocument::NodeElement::resetPorts()
 {
+  refreshPortInfoCache();
   for (const std::string & name : port_names_) {
     PortValues::const_iterator it = port_default_values_.find(name);
     if (it != port_default_values_.end()) {
@@ -640,6 +742,19 @@ NodeManifest TreeDocument::TreeElement::getRequiredNodeManifest() const
   return m;
 }
 
+TreeDocument::TreeElement & TreeDocument::TreeElement::setInlineRegistrationOptions()
+{
+  deepApply([this](NodeElement & node) {
+    const std::string name = node.getRegistrationName();
+    const bool is_native_node = doc_ptr_->native_node_names_.find(name) != doc_ptr_->native_node_names_.end();
+    if (!is_native_node) {
+      node.setInlineRegistrationOptions();
+    }
+    return false;
+  });
+  return *this;
+}
+
 BT::Result TreeDocument::TreeElement::verify() const
 {
   TreeDocument doc(doc_ptr_->format_version_, doc_ptr_->tree_node_loader_ptr_);
@@ -683,12 +798,6 @@ TreeDocument::TreeDocument(const std::string & format_version, NodeRegistrationL
   reset();
 }
 
-TreeDocument & TreeDocument::mergeTreeDocument(const XMLDocument & other, bool adopt_root_tree)
-{
-  std::set<std::string> include_stack;
-  return mergeTreeDocumentImpl(other, adopt_root_tree, include_stack);
-}
-
 TreeDocument & TreeDocument::mergeTreeDocumentImpl(
   const XMLDocument & other, bool adopt_root_tree, std::set<std::string> & include_stack)
 {
@@ -722,6 +831,59 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
       throw exceptions::TreeDocumentError(
         "Cannot merge tree document: The following trees from " + source + " are already defined: [ " +
         auto_apms_util::join(common, ", ") + " ].");
+    }
+  };
+
+  auto register_inline_nodes_for_tree = [this](const XMLElement * tree_ele) {
+    const char * tree_name_attr = tree_ele->Attribute(TREE_NAME_ATTRIBUTE_NAME);
+    const std::string tree_name = tree_name_attr ? tree_name_attr : "<unknown>";
+    NodeManifest inline_manifest;
+
+    auto collect_inline_registration_options = [&](auto && self, const XMLElement * node_ele) -> void {
+      if (!node_ele) {
+        return;
+      }
+
+      if (strcmp(node_ele->Name(), SUBTREE_ELEMENT_NAME) != 0 && hasInlineRegistrationOptions(node_ele)) {
+        const std::string registration_name = node_ele->Name();
+        const std::optional<NodeRegistrationOptions> parsed_options = parseInlineRegistrationOptions(node_ele);
+        if (!parsed_options.has_value()) {
+          throw exceptions::TreeDocumentError(
+            "Cannot merge tree document: Invalid inline registration options for node '" + registration_name +
+            "' in tree '" + tree_name + "'.");
+        }
+
+        const NodeRegistrationOptions & inline_options = parsed_options.value();
+
+        if (registered_nodes_manifest_.contains(registration_name)) {
+          if (registered_nodes_manifest_[registration_name] != inline_options) {
+            throw exceptions::TreeDocumentError(
+              "Cannot merge tree document: Inline registration options for node '" + registration_name + "' in tree '" +
+              tree_name + "' conflict with an existing registration.");
+          }
+        } else if (inline_manifest.contains(registration_name)) {
+          // Another element in this tree already declared the same node inline — tolerate an identical
+          // duplicate but reject conflicting options.
+          if (inline_manifest[registration_name] != inline_options) {
+            throw exceptions::TreeDocumentError(
+              "Cannot merge tree document: Found conflicting inline registration options for node '" +
+              registration_name + "' in tree '" + tree_name + "'.");
+          }
+        } else {
+          inline_manifest.add(registration_name, inline_options);
+        }
+      }
+
+      for (const XMLElement * child = node_ele->FirstChildElement(); child != nullptr;
+           child = child->NextSiblingElement()) {
+        self(self, child);
+      }
+    };
+
+    collect_inline_registration_options(collect_inline_registration_options, tree_ele->FirstChildElement());
+
+    if (!inline_manifest.empty()) {
+      registerNodes(inline_manifest, false);
     }
   };
 
@@ -804,6 +966,8 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
       // We do not need to verify the tree structure here, since it has already been verified during the recursive
       // mergeFile() calls by the for loop below
 
+      register_inline_nodes_for_tree(child);
+
       // If tree element is valid, append to this document
       RootElement()->InsertEndChild(child->DeepClone(this));
     }
@@ -815,6 +979,8 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
     for (const XMLElement * child = other_root->FirstChildElement(TREE_ELEMENT_NAME); child != nullptr;
          child = child->NextSiblingElement(TREE_ELEMENT_NAME)) {
       verify_tree_structure(child);
+
+      register_inline_nodes_for_tree(child);
 
       // If tree element is valid, append to this document
       RootElement()->InsertEndChild(child->DeepClone(this));
@@ -833,6 +999,8 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
     // Check for duplicates before inserting
     check_duplicates(other_tree_names, "the merged document");
 
+    register_inline_nodes_for_tree(other_root);
+
     // If tree element is valid, append to this document
     RootElement()->InsertEndChild(other_root->DeepClone(this));
   } else {
@@ -848,6 +1016,12 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
   }
 
   return *this;
+}
+
+TreeDocument & TreeDocument::mergeTreeDocument(const XMLDocument & other, bool adopt_root_tree)
+{
+  std::set<std::string> include_stack;
+  return mergeTreeDocumentImpl(other, adopt_root_tree, include_stack);
 }
 
 TreeDocument & TreeDocument::mergeTreeDocument(
@@ -1117,11 +1291,11 @@ TreeDocument & TreeDocument::applyNodeNamespace(const std::string & node_namespa
   return *this;
 }
 
-TreeDocument & TreeDocument::registerNodes(const NodeManifest & tree_node_manifest, bool override)
+TreeDocument & TreeDocument::registerNodes(const NodeManifest & node_manifest, bool override)
 {
   // Make sure that there are no node names that are reserved for native nodes
   std::set<std::string> all_registration_names;
-  for (const auto & [name, _] : tree_node_manifest.map()) all_registration_names.insert(name);
+  for (const auto & [name, _] : node_manifest.map()) all_registration_names.insert(name);
   if (const std::set<std::string> common =
         auto_apms_util::getCommonElements(all_registration_names, native_node_names_);
       !common.empty()) {
@@ -1131,22 +1305,23 @@ TreeDocument & TreeDocument::registerNodes(const NodeManifest & tree_node_manife
       auto_apms_util::join(std::vector<std::string>(common.begin(), common.end()), ", ") + " ].");
   }
 
-  for (const auto & [node_name, params] : tree_node_manifest.map()) {
-    // By design, we require the user to maintain unique registration names for nodes. Theoretically, we could tolerate
-    // multiple registrations of the same node name if both registration options are identical, but this would
-    // complicate the implementation (comparing every option one by one) and indicates bad structuring of node manifests
-    // anyways. So we discourage this practice by throwing an error.
+  for (const auto & [node_name, params] : node_manifest.map()) {
     if (registered_nodes_manifest_.contains(node_name)) {
       if (override) {
         // If override is true, register the new node plugin instead of the current one
         factory_.unregisterBuilder(node_name);
         registered_nodes_manifest_.remove(node_name);
       } else {
-        // If overriding is not explicitly wanted, we must throw
+        // Tolerate identical re-registrations as a no-op so that manifests
+        // assembled from multiple independent sources can overlap without error.
+        if (registered_nodes_manifest_[node_name] == params) {
+          continue;
+        }
         throw exceptions::TreeDocumentError(
           "Tried to register node '" + node_name + "' (Class: " + params.class_name +
-          ") which is already known. You must make sure that the registration names are unique or explicitly allow "
-          "overriding previously registered nodes with the same name by setting override=true.");
+          ") which is already registered with different options. You must make sure that the registration names are "
+          "unique, or that re-registrations use the same options, or explicitly allow overriding previously registered "
+          "nodes with the same name by setting override=true.");
       }
     }
 
@@ -1223,6 +1398,16 @@ NodeManifest TreeDocument::getRequiredNodeManifest(const std::string & tree_name
     m.merge(ele.getRequiredNodeManifest(), true);
   }
   return m;
+}
+
+TreeDocument & TreeDocument::setInlineRegistrationOptions(const std::string & tree_name)
+{
+  const std::vector<std::string> names_to_process =
+    tree_name.empty() ? getAllTreeNames() : std::vector<std::string>{tree_name};
+  for (const std::string & name : names_to_process) {
+    getTree(name).setInlineRegistrationOptions();
+  }
+  return *this;
 }
 
 TreeDocument & TreeDocument::addNodeModel(NodeModelMap model_map)

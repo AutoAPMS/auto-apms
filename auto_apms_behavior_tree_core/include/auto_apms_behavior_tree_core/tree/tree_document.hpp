@@ -156,6 +156,7 @@ public:
   static inline const char INCLUDE_ELEMENT_NAME[] = "include";
   static inline const char INCLUDE_PATH_ATTRIBUTE_NAME[] = "path";
   static inline const char INCLUDE_ROS_PKG_ATTRIBUTE_NAME[] = "ros_pkg";
+  static inline const char INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX[] = "_autoapms_reg_opt__";
 
   class TreeElement;
 
@@ -224,14 +225,13 @@ public:
     /**
      * @brief Add a new node to the children of this node.
      *
-     * The given node can only be inserted if it's specified inside the internal node manifest (see also
-     * TreeDocument::registerNodes).
+     * The node is inserted unconditionally — no prior registration is required. This is consistent with the tolerant
+     * constructor design: a handle is always returned, and its port information is populated lazily once the node's
+     * implementation/plugin has been registered with the parent document.
      * @param name Registration name of the node to be inserted.
      * @param before_this Pointer to an existing child node before which the new node will be placed. If `nullptr`,
      * insert at the end.
      * @return Inserted node element.
-     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if the node is not available with the current node
-     * manifest.
      * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if @p before_this is provided but not a child of
      * this node.
      */
@@ -685,46 +685,84 @@ public:
     /**
      * @brief Get the names of the data ports implemented by the node represented by this element.
      *
-     * @note This method only works as intended if the node represented by this element has already been registered.
-     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
-     * @return Names of all implemented data ports. Empty, if the node's model is not known, e.g. because it has not
-     * been registered yet.
+     * The port metadata is loaded lazily: the internal cache is refreshed from the currently registered node model
+     * each time this method is called, so it reflects any nodes registered after this element was constructed.
+     * @return Names of all implemented data ports. Empty if the node has not been registered yet.
      */
     const std::vector<std::string> & getPortNames() const;
 
     /**
      * @brief Assemble the values given to each data port implemented by this node.
      *
-     * @note During construction of this NodeElement, we explicitly set the default port values for the implemented
-     * ports as attributes of the node element. Therefore, this method will return poer values even if the user hasn't
-     * explicitly assigned any values to them.
-     * @note This method only works as intended if the node represented by this element has already been registered.
-     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
-     * @return Mapping of port names and their corresponding values encoded as strings. Empty, if the node's model is
-     * not known, e.g. because it has not been registered yet.
+     * The port metadata is loaded lazily: the internal cache is refreshed from the currently registered node model
+     * each time this method is called, so it reflects any nodes registered after this element was constructed.
+     * When the cache is updated, default port values are written as attributes on the XML element for any ports
+     * that have not already been assigned a value.
+     * @return Mapping of port names and their corresponding values encoded as strings. Empty if the node has not
+     * been registered yet.
      */
     PortValues getPorts() const;
 
     /**
+     * @brief Extract the node registration options by parsing the attributes of this node element.
+     *
+     * Each XML element representing a behavior tree node may have its options for registrering the underlying
+     * implementation encoded in its attributes. This method parses these attributes and returns the corresponding
+     * NodeRegistrationOptions object if they are present. It returns `std::nullopt` if
+     *
+     * - no registration options are found, or
+     *
+     * - the given registration options are invalid, e.g. because the required fields are missing or they cannot
+     * be parsed successfully.
+     *
+     * @return NodeRegistrationOptions object if valid registration options are found, `std::nullopt` otherwise.
+     */
+    std::optional<NodeRegistrationOptions> getInlineRegistrationOptions() const;
+
+    /**
      * @brief Populate the the node's data ports.
      *
-     * This method verifies that @p port_values only refers to implemented ports and throws an exception if any
-     * values for unknown port names are provided.
-     *
-     * @note This method only works as intended if the node represented by this element has already been registered.
-     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
+     * The port metadata is loaded lazily before validation: the internal cache is refreshed from the currently
+     * registered node model so that ports registered after this element was constructed are recognised.
      * @param port_values Port values to be used to populate the corresponding attributes of the node element.
      * @return Reference to the modified instance.
      * @throws auto_apms_behavior_tree::exceptions::TreeDocumentError if @p port_values contains any unknown keys, e.g.
-     * names for ports that are not implemented.
+     * names for ports that are not implemented by the registered node model.
      */
     NodeElement & setPorts(const PortValues & port_values);
 
     /**
+     * @brief Encode the given node registration options as attributes of this node element.
+     *
+     * Each XML element representing a behavior tree node may have its options for registrering the underlying
+     * implementation encoded in its attributes. This method encodes the given registration options as attributes of
+     * this node element. If the given options are invalid, e.g. because required fields are missing, an exception is
+     * raised.
+     *
+     * @param registration_options Registration options to encode as attributes of this node element.
+     * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if @p registration_options are invalid.
+     */
+    NodeElement & setInlineRegistrationOptions(const NodeRegistrationOptions & registration_options);
+
+    /**
+     * @brief Encode the registration options for this node element based on the currently registered node manifest.
+     *
+     * This is a convenience overload that automatically looks up the registration options for this node from the
+     * parent document's registered node manifest and encodes them as attributes of this node element. Use the explicit
+     * overload to set custom registration options instead.
+     *
+     * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if this node has no registration options in the
+     * parent document's node manifest, e.g. because it hasn't been registered yet.
+     */
+    NodeElement & setInlineRegistrationOptions();
+
+    /**
      * @brief Delete all currently specified port values and reset with the defaults.
      *
-     * @note This method only works as intended if the node represented by this element has already been registered.
-     * Otherwise, the node's model is not known and therefore the implemented ports cannot be determined.
+     * The port metadata is loaded lazily before resetting: the internal cache is refreshed from the currently
+     * registered node model so that ports registered after this element was constructed are handled correctly.
      * @return Modified node element.
      */
     NodeElement & resetPorts();
@@ -883,6 +921,11 @@ public:
   private:
     NodeElement insertBeforeImpl(const NodeElement * before_this, XMLElement * add_this);
 
+    /// Refresh the port-name and port-default-value caches from the currently registered node model.
+    /// Called automatically at the start of every port accessor/mutator so handles stay correct after
+    /// late node registration. A no-op when the model has not changed since the last call.
+    void refreshPortInfoCache() const;
+
     static void deepApplyImpl(
       const NodeElement & parent, ConstDeepApplyCallback apply_callback, std::vector<NodeElement> & vec);
 
@@ -895,8 +938,8 @@ public:
     tinyxml2::XMLElement * ele_ptr_;
 
   private:
-    std::vector<std::string> port_names_;
-    PortValues port_default_values_;
+    mutable std::vector<std::string> port_names_;
+    mutable PortValues port_default_values_;
   };
 
   /**
@@ -970,6 +1013,21 @@ public:
      * node.
      */
     NodeManifest getRequiredNodeManifest() const;
+
+    /**
+     * @brief Encode the registration options for all nodes in this tree based on the currently registered node
+     * manifest.
+     *
+     * Iterates all non-native nodes inside this behavior tree and encodes the registration options found in the parent
+     * document's registered node manifest as inline attributes of each corresponding node element. This allows the
+     * resulting XML to be self-contained, since the registration options no longer need to be supplied separately at
+     * load time.
+     *
+     * @return Reference to the modified instance.
+     * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if any node in this tree has no registration
+     * options in the parent document's node manifest, e.g. because it hasn't been registered yet.
+     */
+    TreeElement & setInlineRegistrationOptions();
 
     /**
      * @brief Verify that this behavior tree is structured correctly and can be created successfully.
@@ -1414,16 +1472,30 @@ public:
   /**
    * @brief Load behavior tree node plugins and register them with the internal behavior tree factory.
    *
-   * This makes it possible to add any nodes specified in @p tree_node_manifest to the tree.
+   * Registering nodes means that the document loads the corresponding plugin libraries, reads node metadata (e.g. port
+   * infos) and stores runtime-relevant information (e.g. factory callbacks) for each node in an internal data
+   * structure. This allows the document to later create instances of these nodes.
    *
-   * @param tree_node_manifest Parameters for locating and configuring the behavior tree node plugins.
-   * @param override If @p tree_node_manifest specifies node registration names that have been seen before in other
-   * manifests, setting this argument to `true` will override the previous registrations. If set to `false`, an error is
-   * raised in this case.
+   * The following rules apply when a registration name in @p node_manifest is already known:
+   * - If the incoming registration options are **identical** to the existing one (same fingerprint) and @p override is
+   *   `false`, the entry is silently skipped as a no-op. This allows node manifests assembled from multiple
+   *   independent sources to overlap without error.
+   * - If the incoming options **differ** from the existing registration and @p override is `false`, an error is
+   *   raised.
+   * - If @p override is `true`, the existing registration is always replaced with the new one regardless of whether
+   *   the options match.
+   *
+   * @param node_manifest Parameters for locating and configuring the behavior tree node plugins.
+   * @param override If `true`, existing registrations with the same name are always replaced. If `false` (default),
+   * identical re-registrations are silently ignored, while conflicting ones raise an error.
    * @return Modified tree document.
+   * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if a registration name in @p node_manifest
+   * refers to a native node.
+   * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if a registration name is already registered with
+   * different options and @p override is `false`.
    * @throw auto_apms_behavior_tree::exceptions::NodeRegistrationError if registration fails.
    */
-  virtual TreeDocument & registerNodes(const NodeManifest & tree_node_manifest, bool override = false);
+  virtual TreeDocument & registerNodes(const NodeManifest & node_manifest, bool override = false);
 
   /**
    * @brief Get the names of all nodes that are known to this document.
@@ -1446,6 +1518,23 @@ public:
    * node.
    */
   NodeManifest getRequiredNodeManifest(const std::string & tree_name = "") const;
+
+  /**
+   * @brief Encode the registration options for all nodes in this document based on the currently registered node
+   * manifest.
+   *
+   * Iterates all non-native nodes inside the specified behavior tree (or all trees if @p tree_name is empty) and
+   * encodes the registration options found in the registered node manifest as inline attributes of each corresponding
+   * node element. This allows the resulting XML to be self-contained, since the registration options no longer need to
+   * be supplied separately at load time.
+   *
+   * @param tree_name Optional name of the tree whose nodes should be processed. If left empty (default), all trees
+   * are processed.
+   * @return Modified tree document.
+   * @throw auto_apms_behavior_tree::exceptions::TreeDocumentError if any node in the processed tree(s) has no
+   * registration options in the registered node manifest, e.g. because it hasn't been registered yet.
+   */
+  TreeDocument & setInlineRegistrationOptions(const std::string & tree_name = "");
 
   /**
    * @brief Add a behavior tree node model element to the document by parsing the contents of @p model_map.

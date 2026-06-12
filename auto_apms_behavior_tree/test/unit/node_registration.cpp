@@ -96,48 +96,51 @@ TEST_F(NodeRegistrationTest, RegisterNodesReturnsSelf)
 // Duplicate Registration Without Override Tests
 // =============================================================================
 
-TEST_F(NodeRegistrationTest, DuplicateRegistrationWithoutOverrideThrows)
+TEST_F(NodeRegistrationTest, IdenticalReRegistrationIsNoOp)
 {
   auto manifest = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
 
-  // First registration should succeed
   ASSERT_NO_THROW(doc_->registerNodes(manifest));
 
-  // Second registration of the same node should throw without override
-  EXPECT_THROW(doc_->registerNodes(manifest, false), exceptions::TreeDocumentError);
+  // Re-registering the same node with identical options must be silently ignored
+  EXPECT_NO_THROW(doc_->registerNodes(manifest, false));
+
+  // The node must still be registered exactly once
+  auto registered = doc_->getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count(LOGGER_NODE_NAME), 1u);
 }
 
-TEST_F(NodeRegistrationTest, DuplicateRegistrationWithDifferentClassWithoutOverrideThrows)
+TEST_F(NodeRegistrationTest, ConflictingClassWithoutOverrideThrows)
 {
   auto manifest1 = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
   auto manifest2 = makeSingleNodeManifest(LOGGER_NODE_NAME, ERROR_CLASS_NAME);
 
   ASSERT_NO_THROW(doc_->registerNodes(manifest1));
 
-  // Attempting to register a different class under the same name should throw
+  // Registering a different class under the same name without override must throw
   EXPECT_THROW(doc_->registerNodes(manifest2, false), exceptions::TreeDocumentError);
 }
 
-TEST_F(NodeRegistrationTest, DuplicateRegistrationInSameManifestThrows)
+TEST_F(NodeRegistrationTest, IdenticalReRegistrationInSeparateManifestsIsNoOp)
 {
-  // NodeManifest itself prevents duplicates, so we test via separate calls
   auto manifest = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
-
   doc_->registerNodes(manifest);
 
-  // Create another manifest with the same node name
+  // Second manifest with the same node + class: must be a no-op
   auto manifest2 = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
+  EXPECT_NO_THROW(doc_->registerNodes(manifest2, false));
 
-  EXPECT_THROW(doc_->registerNodes(manifest2, false), exceptions::TreeDocumentError);
+  auto registered = doc_->getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count(LOGGER_NODE_NAME), 1u);
 }
 
-TEST_F(NodeRegistrationTest, PartialDuplicateInManifestThrows)
+TEST_F(NodeRegistrationTest, PartialManifestWithIdenticalDuplicateSucceeds)
 {
   // Register one node
   auto manifest1 = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
   doc_->registerNodes(manifest1);
 
-  // Try to register a manifest containing a new node AND a duplicate
+  // Manifest with a new node AND an identical duplicate: the duplicate is a no-op
   NodeManifest manifest2;
   NodeManifest::RegistrationOptions opts1;
   opts1.class_name = ERROR_CLASS_NAME;
@@ -145,9 +148,31 @@ TEST_F(NodeRegistrationTest, PartialDuplicateInManifestThrows)
 
   NodeManifest::RegistrationOptions opts2;
   opts2.class_name = LOGGER_CLASS_NAME;
-  manifest2.add(LOGGER_NODE_NAME, opts2);  // This is a duplicate
+  manifest2.add(LOGGER_NODE_NAME, opts2);  // identical duplicate — should be silently skipped
 
-  // Should throw because of the duplicate, even though ERROR_NODE_NAME is new
+  EXPECT_NO_THROW(doc_->registerNodes(manifest2, false));
+
+  auto registered = doc_->getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count(LOGGER_NODE_NAME), 1u);
+  EXPECT_EQ(registered.count(ERROR_NODE_NAME), 1u);
+}
+
+TEST_F(NodeRegistrationTest, PartialManifestWithConflictingClassThrows)
+{
+  // Register one node
+  auto manifest1 = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
+  doc_->registerNodes(manifest1);
+
+  // Manifest with a new node AND a conflicting re-registration
+  NodeManifest manifest2;
+  NodeManifest::RegistrationOptions opts1;
+  opts1.class_name = ERROR_CLASS_NAME;
+  manifest2.add(ERROR_NODE_NAME, opts1);
+
+  NodeManifest::RegistrationOptions opts2;
+  opts2.class_name = ERROR_CLASS_NAME;  // different class under the same name
+  manifest2.add(LOGGER_NODE_NAME, opts2);
+
   EXPECT_THROW(doc_->registerNodes(manifest2, false), exceptions::TreeDocumentError);
 }
 
@@ -455,4 +480,57 @@ TEST(ParentFieldIntegrationTest, ResolvedManifestCanRegisterNodes)
   EXPECT_EQ(registered.count("TestLogger"), 1u);
   EXPECT_EQ(registered.count("CustomLogger"), 1u);
   EXPECT_EQ(registered.count("CustomError"), 1u);
+}
+
+// =============================================================================
+// Inline Registration Options Merge Tests
+// =============================================================================
+
+TEST_F(NodeRegistrationTest, MergeStringWithInlineClassRegistersNode)
+{
+  const std::string class_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_CLASS;
+  const std::string xml = std::string("<root BTCPP_format=\"4\" main_tree_to_execute=\"TestTree\">") +
+                          "<BehaviorTree ID=\"TestTree\">" + "<Sequence><" + std::string(LOGGER_NODE_NAME) + " " +
+                          class_attr + "=\"" + LOGGER_CLASS_NAME + "\" message=\"hello\"/></Sequence>" +
+                          "</BehaviorTree>" + "</root>";
+
+  ASSERT_NO_THROW(doc_->mergeString(xml, true));
+
+  auto registered = doc_->getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count(LOGGER_NODE_NAME), 1u);
+}
+
+TEST_F(NodeRegistrationTest, MergeStringWithConflictingInlineClassThrows)
+{
+  auto manifest = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
+  doc_->registerNodes(manifest);
+
+  const std::string class_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_CLASS;
+  const std::string xml = std::string("<root BTCPP_format=\"4\" main_tree_to_execute=\"TestTree\">") +
+                          "<BehaviorTree ID=\"TestTree\">" + "<Sequence><" + std::string(LOGGER_NODE_NAME) + " " +
+                          class_attr + "=\"" + ERROR_CLASS_NAME + "\" message=\"hello\"/></Sequence>" +
+                          "</BehaviorTree>" + "</root>";
+
+  EXPECT_THROW(doc_->mergeString(xml, true), exceptions::TreeDocumentError);
+}
+
+TEST_F(NodeRegistrationTest, MergeStringWithIdenticalInlineClassIsNoOp)
+{
+  auto manifest = makeSingleNodeManifest(LOGGER_NODE_NAME, LOGGER_CLASS_NAME);
+  doc_->registerNodes(manifest);
+
+  const std::string class_attr = std::string(TreeDocument::INLINE_NODE_REGISTRATION_OPTIONS_ATTRIBUTE_PREFIX) +
+                                 NodeRegistrationOptions::PARAM_NAME_CLASS;
+  const std::string xml = std::string("<root BTCPP_format=\"4\" main_tree_to_execute=\"TestTree\">") +
+                          "<BehaviorTree ID=\"TestTree\">" + "<Sequence><" + std::string(LOGGER_NODE_NAME) + " " +
+                          class_attr + "=\"" + LOGGER_CLASS_NAME + "\" message=\"hello\"/></Sequence>" +
+                          "</BehaviorTree>" + "</root>";
+
+  // Identical inline options → no-op, no throw, node still registered once
+  EXPECT_NO_THROW(doc_->mergeString(xml, true));
+
+  auto registered = doc_->getRegisteredNodeNames(false);
+  EXPECT_EQ(registered.count(LOGGER_NODE_NAME), 1u);
 }

@@ -129,6 +129,26 @@ struct NodeRegistrationOptions
    * @return `true` if valid, `false` otherwise.
    */
   bool valid() const;
+
+  /**
+   * @brief Determine whether two registration options are equivalent.
+   *
+   * Equality is evaluated by comparing the canonical YAML serialization of both operands.
+   *
+   * @param other Registration options to compare against.
+   * @return `true` if both describe the same registration, `false` otherwise.
+   */
+  bool operator==(const NodeRegistrationOptions & other) const;
+
+  /**
+   * @brief Determine whether two registration options are not equivalent.
+   *
+   * This is the logical negation of operator==().
+   *
+   * @param other Registration options to compare against.
+   * @return `true` if both describe different registrations, `false` otherwise.
+   */
+  bool operator!=(const NodeRegistrationOptions & other) const;
 };
 
 }  // namespace auto_apms_behavior_tree::core
