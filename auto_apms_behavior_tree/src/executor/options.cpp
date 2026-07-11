@@ -50,6 +50,12 @@ TreeExecutorNodeOptions & TreeExecutorNodeOptions::enableGlobalBlackboardParamet
   return *this;
 }
 
+TreeExecutorNodeOptions & TreeExecutorNodeOptions::enableStrictUnkownParameterRemoval(bool enable)
+{
+  strict_unkown_parameter_removal_ = enable;
+  return *this;
+}
+
 TreeExecutorNodeOptions & TreeExecutorNodeOptions::setDefaultBuildHandler(const std::string & name)
 {
   custom_default_parameters_[_AUTO_APMS_BEHAVIOR_TREE__EXECUTOR_PARAM_BUILD_HANDLER] = rclcpp::ParameterValue(name);

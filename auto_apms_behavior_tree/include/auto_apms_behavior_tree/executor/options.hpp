@@ -68,6 +68,17 @@ public:
   TreeExecutorNodeOptions & enableGlobalBlackboardParameters(bool from_overrides, bool dynamic);
 
   /**
+   * @brief Enable or disable strict unkown parameter removal.
+   *
+   * When enabled, GenericTreeExecutorNode removes initial parameters that are not part of its known parameter set
+   * (excluding scripting enum and blackboard prefixes). Disable this when embedding the executor in nodes that
+   * intentionally declare additional parameters.
+   * @param enable `true` to remove unkown initial parameters, `false` to keep them.
+   * @return Modified options object.
+   */
+  TreeExecutorNodeOptions & enableStrictUnkownParameterRemoval(bool enable);
+
+  /**
    * @brief Specify a default behavior tree build handler.
    * @param name Fully qualified class name of the behavior tree build handler plugin.
    * @return Modified options object.
@@ -108,6 +119,7 @@ private:
   bool scripting_enum_parameters_dynamic_ = true;
   bool blackboard_parameters_from_overrides_ = true;
   bool blackboard_parameters_dynamic_ = true;
+  bool strict_unkown_parameter_removal_ = true;
   std::map<std::string, rclcpp::ParameterValue> custom_default_parameters_;
   std::string command_action_name_;
   std::string clear_blackboard_service_name_;
