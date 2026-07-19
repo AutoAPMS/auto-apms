@@ -188,9 +188,9 @@ doxygen doc/Doxyfile
 
 <a href="https://www.star-history.com/?repos=AutoAPMS%2Fauto-apms&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&theme=dark&legend=top-left&sealed_token=wYXZ9r6s_vMgI4-ZmZfuriU2JrwLEivr1vzJmkSytXHjbD6zNr862nBUxmej-LBcHGAFMwnL3tY7jAtlow9pGIr5cGD0K5Pe1gTaNB0h7ER9DrNAZRv-XB8G6GF3MM2Th7G39CP5kkO4h94EATeMc3wRs4NJWhx6vrLQ7aKmDV-CllV95Kdixr1um-3-" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&legend=top-left&sealed_token=wYXZ9r6s_vMgI4-ZmZfuriU2JrwLEivr1vzJmkSytXHjbD6zNr862nBUxmej-LBcHGAFMwnL3tY7jAtlow9pGIr5cGD0K5Pe1gTaNB0h7ER9DrNAZRv-XB8G6GF3MM2Th7G39CP5kkO4h94EATeMc3wRs4NJWhx6vrLQ7aKmDV-CllV95Kdixr1um-3-" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&legend=top-left&sealed_token=wYXZ9r6s_vMgI4-ZmZfuriU2JrwLEivr1vzJmkSytXHjbD6zNr862nBUxmej-LBcHGAFMwnL3tY7jAtlow9pGIr5cGD0K5Pe1gTaNB0h7ER9DrNAZRv-XB8G6GF3MM2Th7G39CP5kkO4h94EATeMc3wRs4NJWhx6vrLQ7aKmDV-CllV95Kdixr1um-3-" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&theme=dark&legend=top-left&sealed_token=2M2YDQoWvpKag320EjOcxfnSVrHXhcpnHl2J8VbJkz7D1uHvA8qiGgib1oUfEFwfJ7D6a5OqnCgdGmP3bpwvV-opXcYggYk4cBvMqNihoOQlJPUhGARlz6DvNtFYoIFrLd2y24BYcHGyb2sQTW3_H0PhVkLqMNQcL4IS2UwjeHPmiqCb9lN_-ttiya3r" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&legend=top-left&sealed_token=2M2YDQoWvpKag320EjOcxfnSVrHXhcpnHl2J8VbJkz7D1uHvA8qiGgib1oUfEFwfJ7D6a5OqnCgdGmP3bpwvV-opXcYggYk4cBvMqNihoOQlJPUhGARlz6DvNtFYoIFrLd2y24BYcHGyb2sQTW3_H0PhVkLqMNQcL4IS2UwjeHPmiqCb9lN_-ttiya3r" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=AutoAPMS/auto-apms&type=date&legend=top-left&sealed_token=2M2YDQoWvpKag320EjOcxfnSVrHXhcpnHl2J8VbJkz7D1uHvA8qiGgib1oUfEFwfJ7D6a5OqnCgdGmP3bpwvV-opXcYggYk4cBvMqNihoOQlJPUhGARlz6DvNtFYoIFrLd2y24BYcHGyb2sQTW3_H0PhVkLqMNQcL4IS2UwjeHPmiqCb9lN_-ttiya3r" />
  </picture>
 </a>
 
