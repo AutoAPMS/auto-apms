@@ -369,6 +369,11 @@ if(BUILD_TESTING)
   ament_add_pytest_test(${PROJECT_NAME}_unit_tests_py
     "test/unit/test_resource_discovery.py"
   )
+
+  ament_add_gtest(${PROJECT_NAME}_integration_tests
+    "test/integration/tree_execution.cpp"
+  )
+  target_link_libraries(${PROJECT_NAME}_integration_tests ${PROJECT_NAME})
 endif()
 
 # Plugins

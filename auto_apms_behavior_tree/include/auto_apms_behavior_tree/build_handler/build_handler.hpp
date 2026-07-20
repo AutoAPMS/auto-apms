@@ -56,6 +56,9 @@ struct TreeBasedEntryPoint
 
   /**
    * @brief Constructor that decodes the given string into the expected format.
+   *
+   * The expected format is: MyTreeName(var1=value1,var2=value2,...)
+   *
    * @param encoded_str String that encodes the entry point.
    */
   TreeBasedEntryPoint(const std::string & encoded_str);
