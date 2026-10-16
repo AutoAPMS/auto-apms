@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.7.0 (2026-10-16)
+------------------
 * Allow embedding node registration options inline with the behavior tree xml (`#20 <https://github.com/AutoAPMS/auto-apms/issues/20>`_)
   * Add setter/getter for registration options specified inline the xml
   * add evaluation of inline registration options and introduce lazy port info cache

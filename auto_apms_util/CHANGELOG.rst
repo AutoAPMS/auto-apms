@@ -2,8 +2,8 @@
 Changelog for package auto_apms_util
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.7.0 (2026-10-16)
+------------------
 * fix: resolve rolling regressions caused by upstream api changes
 * Contributors: Robin Müller
 
