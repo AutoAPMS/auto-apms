@@ -29,14 +29,7 @@ namespace auto_apms_behavior_tree::core
  */
 class RosNodeContext
 {
-  template <typename>
-  friend class RosActionNode;
-  template <typename>
-  friend class RosServiceNode;
-  template <typename>
-  friend class RosSubscriberNode;
-  template <typename>
-  friend class RosPublisherNode;
+  friend class RosNodeBase;
   template <class, typename, bool>
   friend class NodeRegistrationTemplate;
 
@@ -99,12 +92,61 @@ public:
    */
   YAML::Node getExtraOptions() const;
 
-private:
-  void modifyProvidedPortsListForRegistration(BT::PortsList & ports_list) const;
+  /**
+   * @brief Get the associated ROS 2 node handle.
+   *
+   * Allows custom tree nodes (e.g. a StatefulActionNode that must both publish and subscribe) to create their own
+   * ROS 2 entities. Prefer the dedicated node base classes (RosPublisherNode, ...) where they suffice.
+   *
+   * @return Shared pointer to the ROS 2 node.
+   * @throw auto_apms_behavior_tree::core::exceptions::RosNodeError if the node handle has expired.
+   */
+  rclcpp::Node::SharedPtr getRosNode() const;
 
+  /**
+   * @brief Get the callback group to use when adding ROS 2 waitables (subscriptions, clients, ...) from a tree node.
+   * @return Shared pointer to the callback group, or nullptr if it has expired (add to the node's default group then).
+   */
+  rclcpp::CallbackGroup::SharedPtr getWaitablesCallbackGroup() const;
+
+  /**
+   * @brief Get the executor used for spinning the tree node's waitables.
+   * @return Shared pointer to the executor, or nullptr if it has expired.
+   */
+  rclcpp::executors::SingleThreadedExecutor::SharedPtr getWaitablesExecutor() const;
+
+  /**
+   * @brief Resolve the ROS 2 topic name from the node's registration options (node manifest 'topic' feature),
+   * applying any `(input:port)` substitutions.
+   *
+   * Exposed so custom tree nodes that are not derived from the provided node base classes can still honor a
+   * manifest-configured topic exactly like RosPublisherNode/RosSubscriberNode do.
+   *
+   * @param node Pointer to the behavior tree node instance.
+   * @return The resolved topic name, or an error if the 'topic' option is empty or a referenced input port is unset.
+   */
   BT::Expected<std::string> getTopicName(const BT::TreeNode * node) const;
 
-  BT::PortsRemapping copyAliasedPortValuesToOriginalPorts(const BT::TreeNode * node) const;
+  /**
+   * @brief Get the node registration options.
+   * @return Const reference to the registration options.
+   */
+  const NodeRegistrationOptions & getRegistrationOptions() const;
+
+private:
+  /**
+   * @brief Copy aliased port values onto their original ports directly in the node config (node manifest 'port_alias'
+   * feature).
+   *
+   * Used internally by RosNodeBase to apply port aliasing at construction time. Writes the value the user set on each
+   * aliased port onto the original port the node implementation reads, inserting the original port into the config when
+   * it is not already present (which is the case for ports without a default value).
+   *
+   * @param node Pointer to the behavior tree node instance.
+   */
+  void copyAliasedPortValuesToOriginalPorts(const BT::TreeNode * node) const;
+
+  void modifyProvidedPortsListForRegistration(BT::PortsList & ports_list) const;
 
   const std::string ros_node_name_;
   const std::string fully_qualified_ros_node_name_;

@@ -20,9 +20,8 @@
 
 #include "action_msgs/srv/cancel_goal.hpp"
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
-#include "auto_apms_behavior_tree_core/node/ros_node_context.hpp"
-#include "auto_apms_util/string.hpp"
-#include "behaviortree_cpp/action_node.h"
+#include "auto_apms_behavior_tree_core/node/base/ros_action_node_base.hpp"
+#include "auto_apms_util/logging.hpp"
 #include "rclcpp/executors.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
@@ -95,7 +94,7 @@ inline const char * toStr(const ActionNodeErrorCode & err)
  * @tparam ActionT Type of the ROS 2 action.
  */
 template <class ActionT>
-class RosActionNode : public BT::ActionNodeBase
+class RosActionNode : public RosActionNodeBase
 {
   using ActionClient = typename rclcpp_action::Client<ActionT>;
   using ActionClientPtr = std::shared_ptr<ActionClient>;
@@ -109,8 +108,6 @@ class RosActionNode : public BT::ActionNodeBase
     ActionClientPtr action_client;
     std::string name;
   };
-
-  using ClientsRegistry = std::unordered_map<std::string, std::weak_ptr<ActionClientInstance>>;
 
 public:
   using ActionType = ActionT;
@@ -229,22 +226,13 @@ public:
   std::string getActionName() const;
 
 protected:
-  const Context context_;
-  const rclcpp::Logger logger_;
-
   void halt() override final;
 
   BT::NodeStatus tick() override final;
 
 private:
-  static std::mutex & getMutex();
-
-  // contains the fully-qualified name of the node and the name of the client
-  static ClientsRegistry & getRegistry();
-
   bool dynamic_client_instance_ = false;
   std::shared_ptr<ActionClientInstance> client_instance_;
-  std::string action_client_key_;
   std::shared_future<typename GoalHandle::SharedPtr> future_goal_handle_;
   typename GoalHandle::SharedPtr goal_handle_;
   rclcpp::Time time_goal_sent_;
@@ -270,12 +258,9 @@ RosActionNode<ActionT>::ActionClientInstance::ActionClientInstance(
 
 template <class ActionT>
 inline RosActionNode<ActionT>::RosActionNode(const std::string & instance_name, const Config & config, Context context)
-: BT::ActionNodeBase(instance_name, config),
-  context_(context),
-  logger_(context.getChildLogger(auto_apms_util::toSnakeCase(instance_name)))
+: RosActionNodeBase(instance_name, config, context)
 {
-  // Consider aliasing in ports and copy the values from aliased to original ports
-  this->modifyPortsRemapping(context_.copyAliasedPortValuesToOriginalPorts(this));
+  // The base class stores the context/logger and applies the node manifest 'port_alias' feature.
 
   if (const BT::Expected<std::string> expected_name = context_.getTopicName(this)) {
     createClient(expected_name.value());
@@ -342,7 +327,7 @@ inline BT::NodeStatus RosActionNode<ActionT>::onFailure(ActionNodeErrorCode erro
 template <class T>
 inline void RosActionNode<T>::cancelGoal()
 {
-  rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_ptr = context_.executor_.lock();
+  rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_ptr = context_.getWaitablesExecutor();
   if (!executor_ptr) {
     throw exceptions::RosNodeError(
       context_.getFullyQualifiedTreeNodeName(this) + " - Cannot cancel goal for action '" + client_instance_->name +
@@ -355,7 +340,7 @@ inline void RosActionNode<T>::cancelGoal()
       context_.getFullyQualifiedTreeNodeName(this).c_str());
     // Here the discussion is if we should block or put a timer for the waiting
     const rclcpp::FutureReturnCode ret =
-      executor_ptr->spin_until_future_complete(future_goal_handle_, context_.registration_options_.request_timeout);
+      executor_ptr->spin_until_future_complete(future_goal_handle_, context_.getRegistrationOptions().request_timeout);
     if (ret != rclcpp::FutureReturnCode::SUCCESS) {
       // Do nothing in case of INTERRUPT or TIMEOUT
       return;
@@ -390,7 +375,7 @@ inline void RosActionNode<T>::cancelGoal()
   std::shared_future<std::shared_ptr<typename ActionClient::CancelResponse>> future_cancel_response =
     client_instance_->action_client->async_cancel_goal(goal_handle_);
   if (const auto code = executor_ptr->spin_until_future_complete(
-        future_cancel_response, context_.registration_options_.request_timeout);
+        future_cancel_response, context_.getRegistrationOptions().request_timeout);
       code != rclcpp::FutureReturnCode::SUCCESS) {
     RCLCPP_WARN(
       logger_, "%s - Failed to wait for response for cancellation request (Code: %s).",
@@ -432,8 +417,8 @@ inline void RosActionNode<T>::cancelGoal()
     // Wait for the cancellation to be complete (goal result received)
     std::shared_future<WrappedResult> future_goal_result =
       client_instance_->action_client->async_get_result(goal_handle_);
-    if (const auto code =
-          executor_ptr->spin_until_future_complete(future_goal_result, context_.registration_options_.request_timeout);
+    if (const auto code = executor_ptr->spin_until_future_complete(
+          future_goal_result, context_.getRegistrationOptions().request_timeout);
         code == rclcpp::FutureReturnCode::SUCCESS) {
       RCLCPP_DEBUG(
         logger_, "%s - Goal %s for action '%s' was cancelled successfully.",
@@ -499,7 +484,7 @@ inline BT::NodeStatus RosActionNode<T>::tick()
         context_.getFullyQualifiedTreeNodeName(this) +
         " - Cannot create the action client because the action name couldn't be resolved using "
         "the expression specified by the node's registration parameters (" +
-        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.registration_options_.topic +
+        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.getRegistrationOptions().topic +
         "). Error message: " + expected_name.error());
     }
   }
@@ -577,13 +562,11 @@ inline BT::NodeStatus RosActionNode<T>::tick()
   }
 
   if (status() == BT::NodeStatus::RUNNING) {
-    std::unique_lock<std::mutex> lock(getMutex());
-
     // FIRST case: check if the goal request has a timeout as long as goal_response_received_ is false (Is set to true
     // as soon as a goal response is received)
     if (!goal_response_received_) {
       // See if we must time out
-      if ((context_.getCurrentTime() - time_goal_sent_) > context_.registration_options_.request_timeout) {
+      if ((context_.getCurrentTime() - time_goal_sent_) > context_.getRegistrationOptions().request_timeout) {
         return check_status(onFailure(SEND_GOAL_TIMEOUT));
       }
       return BT::NodeStatus::RUNNING;
@@ -629,41 +612,24 @@ inline bool RosActionNode<ActionT>::createClient(const std::string & action_name
     return true;
   }
 
-  std::unique_lock lk(getMutex());
-
-  rclcpp::Node::SharedPtr node = context_.nh_.lock();
-  if (!node) {
-    throw exceptions::RosNodeError(
-      context_.getFullyQualifiedTreeNodeName(this) +
-      " - The weak pointer to the ROS 2 node expired. The tree node doesn't "
-      "take ownership of it.");
-  }
-  rclcpp::CallbackGroup::SharedPtr group = context_.cb_group_.lock();
+  rclcpp::Node::SharedPtr node = context_.getRosNode();
+  rclcpp::CallbackGroup::SharedPtr group = context_.getWaitablesCallbackGroup();
   if (!group) {
     throw exceptions::RosNodeError(
       context_.getFullyQualifiedTreeNodeName(this) +
       " - The weak pointer to the ROS 2 callback group expired. The tree node doesn't "
       "take ownership of it.");
   }
-  action_client_key_ = std::string(node->get_fully_qualified_name()) + "/" + action_name;
 
-  auto & registry = getRegistry();
-  auto it = registry.find(action_client_key_);
-  if (it == registry.end() || it->second.expired()) {
-    client_instance_ = std::make_shared<ActionClientInstance>(node, group, action_name);
-    registry.insert({action_client_key_, client_instance_});
-    RCLCPP_DEBUG(
-      logger_, "%s - Created client for action '%s'.", context_.getFullyQualifiedTreeNodeName(this).c_str(),
-      action_name.c_str());
-  } else {
-    client_instance_ = it->second.lock();
-  }
+  // Reuse an action client shared across tree nodes with the same action name, or create one on first use.
+  client_instance_ = this->template getSharedEntity<ActionClientInstance>(
+    action_name, [&] { return std::make_shared<ActionClientInstance>(node, group, action_name); });
 
-  bool found = client_instance_->action_client->wait_for_action_server(context_.registration_options_.wait_timeout);
+  bool found = client_instance_->action_client->wait_for_action_server(context_.getRegistrationOptions().wait_timeout);
   if (!found) {
     std::string msg = context_.getFullyQualifiedTreeNodeName(this) + " - Action server with name '" +
                       client_instance_->name + "' is not reachable.";
-    if (context_.registration_options_.allow_unreachable) {
+    if (context_.getRegistrationOptions().allow_unreachable) {
       RCLCPP_WARN_STREAM(logger_, msg);
     } else {
       RCLCPP_ERROR_STREAM(logger_, msg);
@@ -678,20 +644,6 @@ inline std::string RosActionNode<ActionT>::getActionName() const
 {
   if (client_instance_) return client_instance_->name;
   return "unknown";
-}
-
-template <class ActionT>
-inline std::mutex & RosActionNode<ActionT>::getMutex()
-{
-  static std::mutex action_client_mutex;
-  return action_client_mutex;
-}
-
-template <class ActionT>
-inline typename RosActionNode<ActionT>::ClientsRegistry & RosActionNode<ActionT>::getRegistry()
-{
-  static ClientsRegistry action_clients_registry;
-  return action_clients_registry;
 }
 
 }  // namespace auto_apms_behavior_tree::core

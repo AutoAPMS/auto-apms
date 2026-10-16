@@ -14,6 +14,10 @@
 
 #pragma once
 
+#include "auto_apms_behavior_tree_core/node/base/ros_action_node_base.hpp"
+#include "auto_apms_behavior_tree_core/node/base/ros_condition_node.hpp"
+#include "auto_apms_behavior_tree_core/node/base/ros_control_node.hpp"
+#include "auto_apms_behavior_tree_core/node/base/ros_decorator_node.hpp"
 #include "auto_apms_behavior_tree_core/node/node_registration_template.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_action_node.hpp"
 #include "auto_apms_behavior_tree_core/node/ros_publisher_node.hpp"

@@ -31,28 +31,30 @@ namespace auto_apms_behavior_tree
 GenericTreeExecutorNode::GenericTreeExecutorNode(rclcpp::Node::SharedPtr node_ptr, Options options)
 : TreeExecutorBase(node_ptr), executor_options_(options), executor_param_listener_(node_ptr_)
 {
-  // Remove all parameters from overrides that are not supported
-  rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
-  std::vector<std::string> unknown_param_names;
-  for (const std::string & param_name : res.names) {
-    if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
-    if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
-    if (auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
-    try {
-      node_ptr_->undeclare_parameter(param_name);
-    } catch (const rclcpp::exceptions::ParameterImmutableException & e) {
-      // Allow all builtin read only parameters
-      continue;
-    } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
-      // Allow all builtin statically typed parameters
-      continue;
+  if (executor_options_.strict_unkown_parameter_removal_) {
+    // Remove all parameters from overrides that are not supported.
+    rcl_interfaces::msg::ListParametersResult res = node_ptr_->list_parameters({}, 0);
+    std::vector<std::string> unknown_param_names;
+    for (const std::string & param_name : res.names) {
+      if (!stripPrefixFromParameterName(SCRIPTING_ENUM_PARAM_PREFIX, param_name).empty()) continue;
+      if (!stripPrefixFromParameterName(BLACKBOARD_PARAM_PREFIX, param_name).empty()) continue;
+      if (auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) continue;
+      try {
+        node_ptr_->undeclare_parameter(param_name);
+      } catch (const rclcpp::exceptions::ParameterImmutableException & e) {
+        // Allow all builtin read only parameters.
+        continue;
+      } catch (const rclcpp::exceptions::InvalidParameterTypeException & e) {
+        // Allow all builtin statically typed parameters.
+        continue;
+      }
+      unknown_param_names.push_back(param_name);
     }
-    unknown_param_names.push_back(param_name);
-  }
-  if (!unknown_param_names.empty()) {
-    RCLCPP_WARN(
-      logger_, "The following initial parameters are not supported and have been removed: [ %s ].",
-      auto_apms_util::join(unknown_param_names, ", ").c_str());
+    if (!unknown_param_names.empty()) {
+      RCLCPP_WARN(
+        logger_, "The following initial parameters are not supported and have been removed: [ %s ].",
+        auto_apms_util::join(unknown_param_names, ", ").c_str());
+    }
   }
 
   // Set custom parameter default values.
@@ -487,6 +489,11 @@ rcl_interfaces::msg::SetParametersResult GenericTreeExecutorNode::on_set_paramet
 
     // Check if parameter is known
     if (!auto_apms_util::contains(TREE_EXECUTOR_EXPLICITLY_ALLOWED_PARAMETERS, param_name)) {
+      // Not a parameter managed by the executor. When strict removal is disabled, the executor is embedded in a node
+      // that intentionally declares its own additional parameters (see
+      // TreeExecutorNodeOptions::enableStrictUnkownParameterRemoval), so leave those foreign parameters untouched
+      // instead of rejecting them. Otherwise the executor owns the full parameter set and an unknown name is an error.
+      if (!executor_options_.strict_unkown_parameter_removal_) continue;
       return create_rejected("Parameter is unknown");
     }
 

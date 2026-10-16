@@ -19,6 +19,7 @@ set(EXAMPLE_SOURCES
 set(MESSAGE_SOURCES
 )
 set(SERVICE_SOURCES
+  "srv/SetBehavior.srv"
 )
 set(ACTION_SOURCES
   "action/StartTreeExecutor.action"

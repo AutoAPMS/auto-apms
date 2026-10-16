@@ -1,0 +1,69 @@
+name: Update BT Node Reference Docs (Reusable)
+
+# Publishes a behavior tree node reference to the auto-apms-guide repository. The reference must have been uploaded as
+# artifact bt-node-reference earlier in the same workflow run (see node_reference_manifests of
+# build-and-test-reusable.yaml).
+
+on:
+  workflow_call:
+    inputs:
+      node_reference_file:
+        description: 'Name of the node reference file inside the artifact. It is copied to src/reference/ of the guide'
+        required: false
+        type: string
+        default: 'create_node_reference_markdown_output.md'
+      commit_message:
+        description: 'Commit message used when the node reference changed'
+        required: false
+        type: string
+        default: 'Update behavior tree node reference'
+    secrets:
+      UPDATE_BT_NODE_REF_APP_ID:
+        required: true
+      UPDATE_BT_NODE_REF_APP_PRIVATE_KEY:
+        required: true
+
+jobs:
+  update_node_reference:
+    name: Update BT Node Reference Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Behavior Tree Node Reference
+        uses: actions/download-artifact@v4
+        with:
+          name: bt-node-reference
+
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.UPDATE_BT_NODE_REF_APP_ID }}
+          private-key: ${{ secrets.UPDATE_BT_NODE_REF_APP_PRIVATE_KEY }}
+          owner: AutoAPMS
+          repositories: "auto-apms-guide"
+
+      - name: Checkout Documentation Repo
+        uses: actions/checkout@v4
+        with:
+          repository: AutoAPMS/auto-apms-guide
+          token: ${{ steps.generate-token.outputs.token }}  # Use GitHub App token
+          path: docs-repo
+          ref: master
+
+      - name: Copy Updated Docs
+        run: |
+          cp "${{ inputs.node_reference_file }}" "docs-repo/src/reference/${{ inputs.node_reference_file }}"
+
+      - name: Commit and Push Documentation
+        run: |
+          cd docs-repo
+          git config user.name "update-bt-node-reference[bot]"
+          git config user.email "update-bt-node-reference[bot]@users.noreply.github.com"
+          git add .
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "${{ inputs.commit_message }}"
+            git push
+          fi

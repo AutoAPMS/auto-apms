@@ -18,7 +18,8 @@
 #include <cstdio>
 #include <filesystem>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "ament_index_cpp/get_package_prefix.hpp"
+#include "ament_index_cpp/get_package_share_path.hpp"
 #include "auto_apms_behavior_tree_core/builder.hpp"
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
 #include "auto_apms_behavior_tree_core/node/node_model_type.hpp"
@@ -909,13 +910,56 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
     TreeDocument include_doc(format_version_, tree_node_loader_ptr_);
     for (const XMLElement * include_ele = other_root->FirstChildElement(INCLUDE_ELEMENT_NAME); include_ele != nullptr;
          include_ele = include_ele->NextSiblingElement(INCLUDE_ELEMENT_NAME)) {
-      if (const char * path = include_ele->Attribute(INCLUDE_PATH_ATTRIBUTE_NAME)) {
+      const char * path = include_ele->Attribute(INCLUDE_PATH_ATTRIBUTE_NAME);
+      const char * resource_identity = include_ele->Attribute(INCLUDE_RESOURCE_ATTRIBUTE_NAME);
+
+      if (path && resource_identity) {
+        throw exceptions::TreeDocumentError(
+          "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
+          "> element that specifies both the '" + INCLUDE_PATH_ATTRIBUTE_NAME + "' and the '" +
+          INCLUDE_RESOURCE_ATTRIBUTE_NAME + "' attribute. Please specify only one of them.");
+      }
+
+      std::string absolute_path;
+      // For a resource include this holds the single tree to cherry-pick from the file; it stays empty for a path
+      // include, which merges the whole file.
+      std::string cherry_pick_tree_name;
+      if (resource_identity) {
+        // Resolve the include by looking up an installed tree resource by its identity. Unlike a file path, this
+        // decouples the include from any concrete install location: the resource system knows where the associated tree
+        // file lives. The 'ros_pkg' attribute is meaningless here (the package is already part of the identity).
+        if (std::string(resource_identity).empty()) {
+          throw exceptions::TreeDocumentError(
+            "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
+            "> element that specifies an empty resource identity in attribute '" + INCLUDE_RESOURCE_ATTRIBUTE_NAME +
+            "'.");
+        }
+        if (include_ele->Attribute(INCLUDE_ROS_PKG_ATTRIBUTE_NAME)) {
+          throw exceptions::TreeDocumentError(
+            "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
+            "> element that specifies the '" + INCLUDE_ROS_PKG_ATTRIBUTE_NAME + "' attribute together with '" +
+            INCLUDE_RESOURCE_ATTRIBUTE_NAME + "'. The '" + INCLUDE_ROS_PKG_ATTRIBUTE_NAME +
+            "' attribute is only allowed in combination with '" + INCLUDE_PATH_ATTRIBUTE_NAME + "'.");
+        }
+        try {
+          const TreeResource resource{std::string(resource_identity)};
+          absolute_path = resource.build_request_file_path_;
+          // The identity always carries a <tree_name> (a fully qualified tree resource identity requires it), so this
+          // yields the specific tree to cherry-pick rather than parsing the file for a root tree.
+          cherry_pick_tree_name = resource.getRootTreeName();
+        } catch (const std::exception & e) {
+          throw exceptions::TreeDocumentError(
+            "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
+            "> element that specifies the tree resource identity '" + std::string(resource_identity) +
+            "' in attribute '" + INCLUDE_RESOURCE_ATTRIBUTE_NAME + "' which cannot be resolved: " + e.what());
+        }
+      } else if (path) {
         if (std::string(path).empty()) {
           throw exceptions::TreeDocumentError(
             "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
             "> element that specifies an empty path in attribute '" + INCLUDE_PATH_ATTRIBUTE_NAME + "'.");
         }
-        std::string absolute_path = path;
+        absolute_path = path;
         if (const char * ros_pkg = include_ele->Attribute(INCLUDE_ROS_PKG_ATTRIBUTE_NAME)) {
           if (std::string(ros_pkg).empty()) {
             throw exceptions::TreeDocumentError(
@@ -933,8 +977,7 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
               "relative to the package's share directory.");
           }
           try {
-            absolute_path =
-              (std::filesystem::path(ament_index_cpp::get_package_share_directory(ros_pkg)) / path).string();
+            absolute_path = (ament_index_cpp::get_package_share_path(ros_pkg) / path).string();
           } catch (const ament_index_cpp::PackageNotFoundError & e) {
             throw exceptions::TreeDocumentError(
               "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
@@ -942,19 +985,70 @@ TreeDocument & TreeDocument::mergeTreeDocumentImpl(
               INCLUDE_ROS_PKG_ATTRIBUTE_NAME + "'.");
           }
         }
-
-        // Recursively merge the included file to the buffer document, passing the include stack for circular detection
-        try {
-          include_doc.mergeFileImpl(absolute_path, false, include_stack);
-        } catch (const std::exception & e) {
-          throw exceptions::TreeDocumentError(
-            "Cannot merge tree document: Failed to include file '" + absolute_path + "': " + e.what());
-        }
       } else {
         throw exceptions::TreeDocumentError(
           "Cannot merge tree document: Found an <" + std::string(INCLUDE_ELEMENT_NAME) +
-          "> element that doesn't specify the required attribute '" + INCLUDE_PATH_ATTRIBUTE_NAME + "'.");
+          "> element that doesn't specify any of the required attributes '" + INCLUDE_PATH_ATTRIBUTE_NAME + "' or '" +
+          INCLUDE_RESOURCE_ATTRIBUTE_NAME + "'.");
       }
+
+      // Load the included file into a temporary working document (resolving its own nested includes and passing the
+      // include stack for circular detection). Both include kinds go through this same working document; a resource
+      // include additionally narrows it down to a single tree below.
+      TreeDocument work_doc(format_version_, tree_node_loader_ptr_);
+      try {
+        work_doc.mergeFileImpl(absolute_path, false, include_stack);
+      } catch (const std::exception & e) {
+        throw exceptions::TreeDocumentError(
+          "Cannot merge tree document: Failed to include file '" + absolute_path + "': " + e.what());
+      }
+
+      // For a resource include, cherry-pick: reduce the working document to the referenced tree and the trees it
+      // transitively depends on via <SubTree> nodes. A path include keeps the whole file (empty cherry_pick_tree_name).
+      if (!cherry_pick_tree_name.empty()) {
+        if (!work_doc.hasTreeName(cherry_pick_tree_name)) {
+          throw exceptions::TreeDocumentError(
+            "Cannot merge tree document: The tree resource '" + std::string(resource_identity) + "' refers to tree '" +
+            cherry_pick_tree_name + "' which is not defined in file '" + absolute_path + "'.");
+        }
+
+        // Compute the dependency closure of the referenced tree. References to trees not defined in this file are left
+        // out, so they can be resolved by the including document or another include.
+        std::set<std::string> required_tree_names;
+        std::vector<std::string> pending{cherry_pick_tree_name};
+        while (!pending.empty()) {
+          const std::string current = pending.back();
+          pending.pop_back();
+          if (!work_doc.hasTreeName(current)) continue;               // resolved elsewhere
+          if (!required_tree_names.insert(current).second) continue;  // already visited
+          std::function<void(const XMLElement *)> collect_subtree_refs = [&](const XMLElement * ele) {
+            for (const XMLElement * child = ele->FirstChildElement(); child != nullptr;
+                 child = child->NextSiblingElement()) {
+              if (strcmp(child->Name(), SUBTREE_ELEMENT_NAME) == 0) {
+                if (const char * ref = child->Attribute(TREE_NAME_ATTRIBUTE_NAME)) pending.push_back(ref);
+              }
+              collect_subtree_refs(child);
+            }
+          };
+          collect_subtree_refs(work_doc.getXMLElementForTreeWithName(current));
+        }
+
+        for (const std::string & name : work_doc.getAllTreeNames()) {
+          if (required_tree_names.count(name) == 0) work_doc.removeTree(name);
+        }
+      }
+
+      // Merge the working document into the buffer. A tree that already exists in the buffer with identical content is
+      // dropped beforehand (this lets several includes share a common helper subtree - e.g. two behaviors reusing the
+      // same subtree); a same-named tree with differing content is left in place so the merge below reports the clash.
+      for (const std::string & name : work_doc.getAllTreeNames()) {
+        if (
+          include_doc.hasTreeName(name) &&
+          include_doc.getTree(name).writeToString() == work_doc.getTree(name).writeToString()) {
+          work_doc.removeTree(name);
+        }
+      }
+      include_doc.mergeTreeDocument(static_cast<const XMLDocument &>(work_doc), false);
     }
 
     // Check for duplicates from included files before inserting

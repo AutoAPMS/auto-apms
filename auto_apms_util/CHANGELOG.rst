@@ -2,6 +2,9 @@
 Changelog for package auto_apms_util
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.6.0 (2026-10-16)
+------------------
+
 1.5.1 (2026-04-07)
 ------------------
 * fix: add namespaces to cmake macros to prevent variable leaking

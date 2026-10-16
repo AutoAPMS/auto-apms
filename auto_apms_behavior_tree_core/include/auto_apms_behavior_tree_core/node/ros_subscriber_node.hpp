@@ -23,9 +23,8 @@
 #include <vector>
 
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
-#include "auto_apms_behavior_tree_core/node/ros_node_context.hpp"
-#include "auto_apms_util/string.hpp"
-#include "behaviortree_cpp/condition_node.h"
+#include "auto_apms_behavior_tree_core/node/base/ros_condition_node.hpp"
+#include "auto_apms_util/logging.hpp"
 #include "rclcpp/executors.hpp"
 #include "rclcpp/qos.hpp"
 
@@ -61,7 +60,7 @@ namespace auto_apms_behavior_tree::core
  * @tparam MessageT Type of the ROS 2 message.
  */
 template <class MessageT>
-class RosSubscriberNode : public BT::ConditionNode
+class RosSubscriberNode : public RosConditionNode
 {
   using Subscriber = typename rclcpp::Subscription<MessageT>;
 
@@ -81,8 +80,6 @@ class RosSubscriberNode : public BT::ConditionNode
     void removeCallback(const void * callback_owner);
     void broadcast(const std::shared_ptr<MessageT> & msg);
   };
-
-  using SubscribersRegistry = std::unordered_map<std::string, std::weak_ptr<SubscriberInstance>>;
 
 public:
   using MessageType = MessageT;
@@ -166,23 +163,14 @@ public:
   std::string getTopicName() const;
 
 protected:
-  const Context context_;
-  const rclcpp::Logger logger_;
-
   BT::NodeStatus tick() override final;
 
 private:
-  static std::mutex & registryMutex();
-
-  // contains the fully-qualified name of the node and the name of the topic
-  static SubscribersRegistry & getRegistry();
-
   const rclcpp::QoS qos_;
   std::string topic_name_;
   bool dynamic_client_instance_ = false;
   std::shared_ptr<SubscriberInstance> sub_instance_;
   std::shared_ptr<MessageT> last_msg_;
-  std::string subscriber_key_;
 };
 
 // #####################################################################################################################
@@ -233,13 +221,9 @@ inline void RosSubscriberNode<MessageT>::SubscriberInstance::broadcast(const std
 template <class MessageT>
 inline RosSubscriberNode<MessageT>::RosSubscriberNode(
   const std::string & instance_name, const Config & config, Context context, const rclcpp::QoS & qos)
-: BT::ConditionNode{instance_name, config},
-  context_{context},
-  logger_(context.getChildLogger(auto_apms_util::toSnakeCase(instance_name))),
-  qos_{qos}
+: RosConditionNode{instance_name, config, context}, qos_{qos}
 {
-  // Consider aliasing in ports and copy the values from aliased to original ports
-  this->modifyPortsRemapping(context_.copyAliasedPortValuesToOriginalPorts(this));
+  // Port aliasing is already applied by RosConditionNode ctor.
 
   if (const BT::Expected<std::string> expected_name = context_.getTopicName(this)) {
     createSubscriber(expected_name.value());
@@ -262,35 +246,19 @@ inline bool RosSubscriberNode<MessageT>::createSubscriber(const std::string & to
   // Check if the subscriber with given name is already set up
   if (sub_instance_ && topic_name == sub_instance_->name) return true;
 
-  std::unique_lock lk(registryMutex());
-
-  rclcpp::Node::SharedPtr node = context_.nh_.lock();
-  if (!node) {
-    throw exceptions::RosNodeError(
-      context_.getFullyQualifiedTreeNodeName(this) +
-      " - The weak pointer to the ROS 2 node expired. The tree node doesn't "
-      "take ownership of it.");
-  }
-  rclcpp::CallbackGroup::SharedPtr group = context_.cb_group_.lock();
+  rclcpp::Node::SharedPtr node = context_.getRosNode();
+  rclcpp::CallbackGroup::SharedPtr group = context_.getWaitablesCallbackGroup();
   if (!group) {
     throw exceptions::RosNodeError(
       context_.getFullyQualifiedTreeNodeName(this) +
       " - The weak pointer to the ROS 2 callback group expired. The tree node doesn't "
       "take ownership of it.");
   }
-  subscriber_key_ = std::string(node->get_fully_qualified_name()) + "/" + topic_name;
 
-  auto & registry = getRegistry();
-  auto it = registry.find(subscriber_key_);
-  if (it == registry.end() || it->second.expired()) {
-    sub_instance_ = std::make_shared<SubscriberInstance>(node, group, topic_name, qos_);
-    registry.insert({subscriber_key_, sub_instance_});
-    RCLCPP_DEBUG(
-      logger_, "%s - Created subscriber for topic '%s'.", context_.getFullyQualifiedTreeNodeName(this).c_str(),
-      topic_name.c_str());
-  } else {
-    sub_instance_ = it->second.lock();
-  }
+  // Reuse a subscriber shared across tree nodes with the same topic name, or create one on first use. The shared
+  // instance broadcasts every received message to all the nodes that registered a callback below.
+  sub_instance_ = this->template getSharedEntity<SubscriberInstance>(
+    topic_name, [&] { return std::make_shared<SubscriberInstance>(node, group, topic_name, qos_); });
 
   // Check if there was a message received before the creation of this subscriber action
   if (sub_instance_->last_msg) {
@@ -328,7 +296,7 @@ inline BT::NodeStatus RosSubscriberNode<MessageT>::tick()
         context_.getFullyQualifiedTreeNodeName(this) +
         " - Cannot create the subscriber because the topic name couldn't be resolved using "
         "the expression specified by the node's registration parameters (" +
-        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.registration_options_.topic +
+        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.getRegistrationOptions().topic +
         "). Error message: " + expected_name.error());
     }
   }
@@ -367,20 +335,6 @@ inline std::string RosSubscriberNode<MessageT>::getTopicName() const
 {
   if (sub_instance_) return sub_instance_->name;
   return "unknown";
-}
-
-template <class MessageT>
-inline std::mutex & RosSubscriberNode<MessageT>::registryMutex()
-{
-  static std::mutex sub_mutex;
-  return sub_mutex;
-}
-
-template <class MessageT>
-inline typename RosSubscriberNode<MessageT>::SubscribersRegistry & RosSubscriberNode<MessageT>::getRegistry()
-{
-  static SubscribersRegistry subscribers_registry;
-  return subscribers_registry;
 }
 
 }  // namespace auto_apms_behavior_tree::core

@@ -74,10 +74,10 @@ std::set<NodeManifestResourceIdentity> getNodeManifestResourceIdentities(const s
   std::set<NodeManifestResourceIdentity> identities;
   for (const auto & p : auto_apms_util::getPackagesWithResourceType(
          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST, exclude_packages)) {
-    std::string content;
-    std::string base_path;
-    if (ament_index_cpp::get_resource(
-          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST, p, content, &base_path)) {
+    const ament_index_cpp::PathWithResource resource =
+      ament_index_cpp::get_resource(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST, p);
+    if (resource.resourcePath) {
+      const std::string & content = resource.contents;
       for (const auto & line :
            auto_apms_util::splitString(content, _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_LINE_SEP)) {
         const std::vector<std::string> parts = auto_apms_util::splitString(
@@ -266,10 +266,11 @@ NodeManifestResource::NodeManifestResource(const Identity & search_identity)
 
   size_t matching_count = 0;
   for (const auto & p : search_packages) {
-    std::string content;
-    std::string base_path;
-    if (ament_index_cpp::get_resource(
-          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST, p, content, &base_path)) {
+    const ament_index_cpp::PathWithResource resource =
+      ament_index_cpp::get_resource(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__NODE_MANIFEST, p);
+    if (resource.resourcePath) {
+      const std::string & content = resource.contents;
+      const std::string base_path = resource.resourcePath->string();
       std::vector<std::string> lines =
         auto_apms_util::splitString(content, _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_LINE_SEP);
       for (const std::string & line : lines) {

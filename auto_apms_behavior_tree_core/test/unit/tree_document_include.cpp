@@ -23,7 +23,19 @@
 using namespace auto_apms_behavior_tree::core;
 using namespace auto_apms_behavior_tree;
 
-class TreeDocumentRecursiveIncludeTest : public ::testing::Test
+// Tests for the <include> element of TreeDocument. An include may locate the referenced file in three ways:
+//   - path                : a file path (absolute, or relative to the current working directory)
+//   - path + ros_pkg      : a path relative to the share directory of the given ROS 2 package
+//   - autoapms            : a registered tree resource identity, resolved through the AutoAPMS resource system
+// The include is processed by mergeTreeDocumentImpl regardless of the entry point (mergeFile / mergeString /
+// mergeTreeDocument), which is why the suite exercises each of them.
+//
+// Note on 'autoapms' coverage: resolving a resource identity to a file requires an installed, discoverable tree
+// resource. This package cannot register one for itself (the register_trees CMake macro is only available to
+// downstream consumers), so the success path of the 'autoapms' attribute is validated end-to-end elsewhere (e.g. the
+// auto_apms_px4 example). Here we exhaustively cover its argument validation and the failure path, which still
+// exercises the full resolution attempt.
+class TreeDocumentIncludeTest : public ::testing::Test
 {
 protected:
   void SetUp() override
@@ -54,7 +66,7 @@ protected:
   std::filesystem::path temp_dir_;
 };
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithSingleInclude)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithSingleInclude)
 {
   // Create the included file with a simple tree
   const std::string included_content = R"(
@@ -88,7 +100,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithSingleInclude)
   EXPECT_TRUE(doc_->hasTreeName("IncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithMultipleIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithMultipleIncludes)
 {
   // Create first included file
   const std::string included1_content = R"(
@@ -137,7 +149,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithMultipleIncludes)
   EXPECT_TRUE(doc_->hasTreeName("SecondIncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNestedIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithNestedIncludes)
 {
   // Create the deepest nested file
   const std::string deep_content = R"(
@@ -184,7 +196,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNestedIncludes)
   EXPECT_TRUE(doc_->hasTreeName("DeepTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithRelativePath)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithRelativePath)
 {
   // Create a subdirectory
   std::filesystem::create_directories(temp_dir_ / "subdir");
@@ -221,7 +233,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithRelativePath)
   EXPECT_TRUE(doc_->hasTreeName("SubdirTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithEmptyPath)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithEmptyPath)
 {
   // Create a file with an empty path attribute
   const std::string invalid_content = R"(
@@ -238,7 +250,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithEmptyPath)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithMissingPathAttribute)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithMissingPathAttribute)
 {
   // Create a file with an include element without path attribute
   const std::string invalid_content = R"(
@@ -255,7 +267,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithMissingPathAttribute)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNonExistentIncludedFile)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithNonExistentIncludedFile)
 {
   // Create a file that tries to include a non-existent file
   const std::string invalid_content = R"(
@@ -272,7 +284,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNonExistentIncludedFile)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithEmptyRosPkg)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithEmptyRosPkg)
 {
   // Create a file with an empty ros_pkg attribute
   const std::string invalid_content = R"(
@@ -289,7 +301,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithEmptyRosPkg)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithAbsolutePathAndRosPkg)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithAbsolutePathAndRosPkg)
 {
   // Create a file with both absolute path and ros_pkg attribute (not allowed)
   const std::string invalid_content = R"(
@@ -306,7 +318,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithAbsolutePathAndRosPkg)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNonExistentRosPkg)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithNonExistentRosPkg)
 {
   // Create a file with a non-existent ROS package
   const std::string invalid_content = R"(
@@ -323,7 +335,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNonExistentRosPkg)
   EXPECT_THROW(doc_->mergeFile(getFilePath("invalid.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDuplicateTreeNames)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithDuplicateTreeNames)
 {
   // Create included file with a tree name
   const std::string included_content = R"(
@@ -351,7 +363,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDuplicateTreeNames)
   EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDuplicateTreeNamesInIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithDuplicateTreeNamesInIncludes)
 {
   // Create first included file
   const std::string included1_content = R"(
@@ -391,7 +403,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDuplicateTreeNamesInInclud
   EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileIncludesOnlyTrees)
+TEST_F(TreeDocumentIncludeTest, MergeFileIncludesOnlyTrees)
 {
   // Create included file with a tree
   const std::string included_content = R"(
@@ -427,7 +439,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileIncludesOnlyTrees)
   EXPECT_TRUE(xml.find("<include") == std::string::npos);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFilePreservesRootTreeAttribute)
+TEST_F(TreeDocumentIncludeTest, MergeFilePreservesRootTreeAttribute)
 {
   // Create included file
   const std::string included_content = R"(
@@ -459,7 +471,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFilePreservesRootTreeAttribute)
   EXPECT_EQ(doc_->getRootTreeName(), "MainTree");
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithIncludedFileHavingMultipleTrees)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithIncludedFileHavingMultipleTrees)
 {
   // Create included file with multiple trees
   const std::string included_content = R"(
@@ -497,7 +509,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithIncludedFileHavingMultiple
   EXPECT_TRUE(doc_->hasTreeName("SecondIncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithIncludeElement)
+TEST_F(TreeDocumentIncludeTest, MergeStringWithIncludeElement)
 {
   // Create the file to be included
   const std::string included_content = R"(
@@ -528,7 +540,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithIncludeElement)
   EXPECT_TRUE(doc_->hasTreeName("IncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNoTreesInIncludedFile)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithNoTreesInIncludedFile)
 {
   // Create included file without any trees (just root element)
   const std::string included_content = R"(
@@ -558,7 +570,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithNoTreesInIncludedFile)
   EXPECT_TRUE(doc_->hasTreeName("MainTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileIncludeOrderPreserved)
+TEST_F(TreeDocumentIncludeTest, MergeFileIncludeOrderPreserved)
 {
   // Create first included file
   const std::string included1_content = R"(
@@ -612,7 +624,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileIncludeOrderPreserved)
   EXPECT_LT(pos_b, pos_c);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileInvalidXmlInIncludedFile)
+TEST_F(TreeDocumentIncludeTest, MergeFileInvalidXmlInIncludedFile)
 {
   // Create included file with invalid XML
   const std::string included_content = R"(
@@ -640,7 +652,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileInvalidXmlInIncludedFile)
   EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithWrongFormatInIncludedFile)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithWrongFormatInIncludedFile)
 {
   // Create included file with wrong format version
   const std::string included_content = R"(
@@ -668,7 +680,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithWrongFormatInIncludedFile)
   EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDeeplyNestedIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithDeeplyNestedIncludes)
 {
   // Create a chain of 5 nested includes to test deep recursion
   const int depth = 5;
@@ -714,7 +726,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithDeeplyNestedIncludes)
   }
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithIncludeDuplicatingExistingTree)
+TEST_F(TreeDocumentIncludeTest, MergeFileWithIncludeDuplicatingExistingTree)
 {
   // First, add a tree to the document
   const std::string initial_content = R"(
@@ -753,7 +765,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileWithIncludeDuplicatingExisting
   EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileCircularIncludePrevented)
+TEST_F(TreeDocumentIncludeTest, MergeFileCircularIncludePrevented)
 {
   // This test verifies that circular includes are detected and prevented
   // The implementation tracks the include stack and throws when a circular include is detected
@@ -796,7 +808,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileCircularIncludePrevented)
   }
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileSelfIncludePrevented)
+TEST_F(TreeDocumentIncludeTest, MergeFileSelfIncludePrevented)
 {
   // Test that a file including itself is detected as circular
   const std::string self_include_content = R"(
@@ -817,7 +829,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeFileSelfIncludePrevented)
 // Tests using mergeString
 // ============================================================================
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithSingleInclude)
+TEST_F(TreeDocumentIncludeTest, MergeStringWithSingleInclude)
 {
   // Create the included file
   const std::string included_content = R"(
@@ -847,7 +859,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithSingleInclude)
   EXPECT_TRUE(doc_->hasTreeName("IncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringCircularIncludePrevented)
+TEST_F(TreeDocumentIncludeTest, MergeStringCircularIncludePrevented)
 {
   // Create file A that includes file B
   const std::string file_a_content = R"(
@@ -887,7 +899,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringCircularIncludePrevented)
   EXPECT_THROW(doc_->mergeString(main_content), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithNestedIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeStringWithNestedIncludes)
 {
   // Create deeply nested includes via mergeString entry point
   const std::string deep_content = R"(
@@ -933,7 +945,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeStringWithNestedIncludes)
 // Tests using mergeTreeDocument
 // ============================================================================
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentWithInclude)
+TEST_F(TreeDocumentIncludeTest, MergeTreeDocumentWithInclude)
 {
   // Create the included file
   const std::string included_content = R"(
@@ -967,7 +979,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentWithInclude)
   EXPECT_TRUE(doc_->hasTreeName("IncludedTree"));
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentCircularIncludePrevented)
+TEST_F(TreeDocumentIncludeTest, MergeTreeDocumentCircularIncludePrevented)
 {
   // Create file A that includes file B
   const std::string file_a_content = R"(
@@ -1010,7 +1022,7 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentCircularIncludePrevent
   EXPECT_THROW(doc_->mergeTreeDocument(xml_doc), exceptions::TreeDocumentError);
 }
 
-TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentXMLDocumentWithNestedIncludes)
+TEST_F(TreeDocumentIncludeTest, MergeTreeDocumentXMLDocumentWithNestedIncludes)
 {
   // Test mergeTreeDocument(const XMLDocument&, ...) with nested includes
   const std::string deep_content = R"(
@@ -1052,4 +1064,154 @@ TEST_F(TreeDocumentRecursiveIncludeTest, MergeTreeDocumentXMLDocumentWithNestedI
   EXPECT_TRUE(doc_->hasTreeName("MainTree"));
   EXPECT_TRUE(doc_->hasTreeName("MiddleTree"));
   EXPECT_TRUE(doc_->hasTreeName("DeepTree"));
+}
+
+// ============================================================================
+// Tests for the 'autoapms' attribute (resource-identity based includes)
+// ============================================================================
+
+// Helper: merge the given XML string and return the message of the TreeDocumentError it is expected to raise.
+// Fails the test if no such exception is thrown.
+namespace
+{
+std::string expectMergeStringError(TreeDocument & doc, const std::string & content)
+{
+  try {
+    doc.mergeString(content);
+  } catch (const exceptions::TreeDocumentError & e) {
+    return e.what();
+  }
+  ADD_FAILURE() << "Expected a TreeDocumentError to be thrown, but none was.";
+  return {};
+}
+}  // namespace
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeEmptyIdentityThrows)
+{
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include autoapms=""/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  const std::string msg = expectMergeStringError(*doc_, content);
+  EXPECT_NE(msg.find("autoapms"), std::string::npos) << "Message should name the offending attribute: " << msg;
+}
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeCombinedWithPathThrows)
+{
+  // Specifying both a file path and a resource identity is ambiguous and must be rejected.
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include path="some/file.xml" autoapms="some_package::some_file::SomeTree"/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  const std::string msg = expectMergeStringError(*doc_, content);
+  EXPECT_NE(msg.find("path"), std::string::npos) << msg;
+  EXPECT_NE(msg.find("autoapms"), std::string::npos) << msg;
+}
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeCombinedWithRosPkgThrows)
+{
+  // 'ros_pkg' only makes sense together with 'path' (the package is already encoded in the resource identity). This is
+  // rejected before any resolution is attempted, so the identity need not exist.
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include autoapms="some_package::some_file::SomeTree" ros_pkg="some_package"/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  const std::string msg = expectMergeStringError(*doc_, content);
+  EXPECT_NE(msg.find("ros_pkg"), std::string::npos) << msg;
+  EXPECT_NE(msg.find("autoapms"), std::string::npos) << msg;
+}
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeUnresolvableIdentityThrows)
+{
+  // A well-formed but non-existent identity must surface a TreeDocumentError. This drives the full resolution attempt
+  // (constructing a TreeResource), proving the 'autoapms' path is wired to the resource system.
+  const std::string identity = "nonexistent_pkg_12345::no_such_file::NoSuchTree";
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include autoapms=")" + identity +
+                              R"("/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  const std::string msg = expectMergeStringError(*doc_, content);
+  EXPECT_NE(msg.find(identity), std::string::npos) << "Message should echo the offending identity: " << msg;
+}
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeMalformedIdentityThrows)
+{
+  // An identity that is missing the required <tree_name> token is malformed and cannot even be parsed into a
+  // TreeResourceIdentity. It must still be reported as a TreeDocumentError rather than escaping as another type.
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include autoapms="missing_tree_name_alias"/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  EXPECT_THROW(doc_->mergeString(content), exceptions::TreeDocumentError);
+}
+
+TEST_F(TreeDocumentIncludeTest, AutoapmsIncludeUnresolvableThrowsViaMergeFile)
+{
+  // Same failure surfaces through the mergeFile entry point (the include is processed in the shared implementation).
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include autoapms="nonexistent_pkg_12345::no_such_file::NoSuchTree"/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  writeFile("main.xml", content);
+  EXPECT_THROW(doc_->mergeFile(getFilePath("main.xml")), exceptions::TreeDocumentError);
+}
+
+// ============================================================================
+// Generic include validation (independent of the locating attribute)
+// ============================================================================
+
+TEST_F(TreeDocumentIncludeTest, IncludeWithoutLocatingAttributeThrows)
+{
+  // An <include> that specifies neither 'path' nor 'autoapms' cannot locate anything and must be rejected with a
+  // message naming both accepted attributes.
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  const std::string msg = expectMergeStringError(*doc_, content);
+  EXPECT_NE(msg.find("path"), std::string::npos) << msg;
+  EXPECT_NE(msg.find("autoapms"), std::string::npos) << msg;
+}
+
+TEST_F(TreeDocumentIncludeTest, IncludeWithOnlyRosPkgThrows)
+{
+  // 'ros_pkg' on its own does not locate a file (it only qualifies a 'path'), so this must be rejected.
+  const std::string content = R"(
+<root BTCPP_format="4">
+  <include ros_pkg="some_package"/>
+  <BehaviorTree ID="MainTree">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+</root>
+)";
+  EXPECT_THROW(doc_->mergeString(content), exceptions::TreeDocumentError);
 }

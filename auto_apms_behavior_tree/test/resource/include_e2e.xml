@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" main_tree_to_execute="E2ERoot">
+  <!--
+    End-to-end fixture for the <include autoapms="..."/> attribute (resolving an included file through the AutoAPMS
+    tree resource system). Registered as a tree resource under BUILD_TESTING (see CMakeLists.txt), so its trees are
+    addressable as auto_apms_behavior_tree::include_e2e::<tree_name>.
+
+    It deliberately contains several trees so tests can verify the cherry-pick semantics of an autoapms include:
+      - a leaf tree (E2EHelperSuccess) with no dependencies,
+      - a tree (E2ERoot) that composes others via <SubTree>, so its full dependency closure is pulled in, and
+      - two trees (E2EAlpha, E2EBeta) that share a common helper (E2ESharedLeaf), so two separate includes exercise the
+        deduplication of a helper subtree they both depend on.
+    Only native BehaviorTree.CPP nodes are used, so no node manifest is needed.
+  -->
+  <BehaviorTree ID="E2ERoot">
+    <Sequence>
+      <SubTree ID="E2EHelperSuccess"/>
+      <SubTree ID="E2EHelperSequence"/>
+    </Sequence>
+  </BehaviorTree>
+
+  <BehaviorTree ID="E2EHelperSuccess">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+
+  <BehaviorTree ID="E2EHelperSequence">
+    <Sequence>
+      <AlwaysSuccess/>
+      <AlwaysSuccess/>
+    </Sequence>
+  </BehaviorTree>
+
+  <!-- Helper shared by E2EAlpha and E2EBeta below. -->
+  <BehaviorTree ID="E2ESharedLeaf">
+    <AlwaysSuccess/>
+  </BehaviorTree>
+
+  <BehaviorTree ID="E2EAlpha">
+    <SubTree ID="E2ESharedLeaf"/>
+  </BehaviorTree>
+
+  <BehaviorTree ID="E2EBeta">
+    <Sequence>
+      <SubTree ID="E2ESharedLeaf"/>
+      <AlwaysSuccess/>
+    </Sequence>
+  </BehaviorTree>
+</root>

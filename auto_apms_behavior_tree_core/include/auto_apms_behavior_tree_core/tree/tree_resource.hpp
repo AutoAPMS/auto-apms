@@ -32,13 +32,12 @@ namespace auto_apms_behavior_tree::core
  * The identity string is formatted like `<package_name>::<tree_file_stem>::<tree_name>`. Since TreeResource uses the
  * same identity resolution as BehaviorResource (where `<behavior_alias>` = `<tree_file_stem>::<tree_name>`), all
  * short forms documented in BehaviorResourceIdentity apply. Both `<tree_file_stem>` and `<tree_name>` must always be
- * provided.
+ * provided. For partial lookups, use TreeResource::findByTreeName() or TreeResource::findByFileStem().
  *
  * @note Because the behavior alias for tree resources contains `::`, the bare alias form
  * `<tree_file_stem>::<tree_name>` is **ambiguous** with the `<package_name>::<behavior_alias>` form of
- * BehaviorResourceIdentity. You must use at least `<package_name>::<tree_file_stem>::<tree_name>` when constructing
- * a TreeResourceIdentity from a string (`<package_name>` can be empty though). For partial lookups, use
- * TreeResource::findByTreeName() or TreeResource::findByFileStem().
+ * BehaviorResourceIdentity. You must use the format `<package_name>::<tree_file_stem>::<tree_name>` when constructing
+ * a TreeResourceIdentity from a string (`<package_name>` can be empty though).
  */
 struct TreeResourceIdentity : public BehaviorResourceIdentity
 {

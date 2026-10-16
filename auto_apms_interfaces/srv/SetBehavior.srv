@@ -1,0 +1,9 @@
+# Request
+string build_request # String determining which behavior tree is to be built
+string build_handler # Fully qualified class name of the behavior tree build handler plugin (empty keeps the current one)
+string entry_point # Single point of entry for behavior execution
+string node_manifest # Encoded node manifest specifying the behavior tree nodes to load initially
+---
+# Response
+bool success # Whether the behavior was verified and set successfully
+string message # Diagnostic detail, e.g. the reason the behavior was rejected

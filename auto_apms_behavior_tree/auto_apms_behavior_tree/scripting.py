@@ -308,8 +308,9 @@ def sync_run_generic_behavior_with_executor(
 
 
 def sync_run_behavior_resource_with_executor(
-    executor_name: str,
+    action_name: str,
     behavior: BehaviorResource | None,
+    executor_node_name: str | None = None,
     static_params: dict = None,
     blackboard_params: dict = None,
     clear_blackboard: bool = False,
@@ -319,20 +320,23 @@ def sync_run_behavior_resource_with_executor(
     Execute a behavior on a remote executor node.
 
     Args:
-        executor_name: Name of the behavior tree executor
+        action_name: Name of the StartTreeExecutor action to call for starting the behavior execution
+            (e.g. '/my_executor/start_tree_executor).
         behavior: A valid behavior resource or None for letting the build handler
             decide how to build the tree without a specific build request
+        executor_node_name: Name of the behavior tree executor node (e.g. 'my_executor').
         static_params: Static parameters to set on the executor
         blackboard_params: Blackboard parameters to set on the executor
         clear_blackboard: Clear the blackboard before execution
         logging_level: Logger level to set on the executor
     """
     return sync_run_generic_behavior_with_executor(
-        executor_name=executor_name,
+        action_name=action_name,
         build_request=behavior.build_request if behavior else None,
         build_handler=behavior.default_build_handler if behavior else None,
         entry_point=behavior.entry_point if behavior else None,
         node_manifest=behavior.node_manifest if behavior else None,
+        executor_node_name=executor_node_name,
         static_params=static_params,
         blackboard_params=blackboard_params,
         clear_blackboard=clear_blackboard,
@@ -384,18 +388,19 @@ def sync_run_generic_behavior_locally(
         add_ros_argument("remap", ("__ns", namespace if namespace.startswith("/") else f"/{namespace}"))
 
     if logging_level:
-        add_ros_argument("log-level", (required_command, logging_level.name))
+        add_ros_argument(
+            "log-level", (f"{namespace}.{required_command}" if namespace else required_command, logging_level.name)
+        )
 
     # Add static parameter for setting the build handler
     if build_handler:
         # We override the build handler that might be passed via this dict with the value of the dedicated argument
         static_params["build_handler"] = build_handler
 
-    if static_params or blackboard_params:
-        for tup in static_params.items():
-            add_ros_argument("param", tup)
-        for k, v in (blackboard_params or {}).items():
-            add_ros_argument("param", (f"bb.{k}", v))
+    for tup in (static_params or {}).items():
+        add_ros_argument("param", tup)
+    for k, v in (blackboard_params or {}).items():
+        add_ros_argument("param", (f"bb.{k}", v))
 
     return run_executable(
         path=get_executable_path(
@@ -469,7 +474,7 @@ def sync_run_tree_node_locally(
         add_ros_argument("remap", ("__ns", namespace if namespace.startswith("/") else f"/{namespace}"))
 
     if logging_level:
-        add_ros_argument("log-level", (node_name, logging_level.name))
+        add_ros_argument("log-level", (f"{namespace}.{node_name}" if namespace else node_name, logging_level.name))
 
     return run_executable(
         path=get_executable_path(

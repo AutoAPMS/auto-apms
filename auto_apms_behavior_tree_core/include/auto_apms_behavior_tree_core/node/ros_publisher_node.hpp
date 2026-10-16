@@ -18,9 +18,8 @@
 #include <string>
 
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
-#include "auto_apms_behavior_tree_core/node/ros_node_context.hpp"
-#include "auto_apms_util/string.hpp"
-#include "behaviortree_cpp/condition_node.h"
+#include "auto_apms_behavior_tree_core/node/base/ros_condition_node.hpp"
+#include "auto_apms_util/logging.hpp"
 #include "rclcpp/qos.hpp"
 
 namespace auto_apms_behavior_tree::core
@@ -60,7 +59,7 @@ namespace auto_apms_behavior_tree::core
  * @tparam MessageT Type of the ROS 2 message.
  */
 template <class MessageT>
-class RosPublisherNode : public BT::ConditionNode
+class RosPublisherNode : public RosConditionNode
 {
   using Publisher = typename rclcpp::Publisher<MessageT>;
 
@@ -130,9 +129,6 @@ public:
   std::string getTopicName() const;
 
 protected:
-  const Context context_;
-  const rclcpp::Logger logger_;
-
   BT::NodeStatus tick() override final;
 
 private:
@@ -149,13 +145,9 @@ private:
 template <class MessageT>
 inline RosPublisherNode<MessageT>::RosPublisherNode(
   const std::string & instance_name, const Config & config, Context context, const rclcpp::QoS & qos)
-: BT::ConditionNode(instance_name, config),
-  context_(context),
-  logger_(context.getChildLogger(auto_apms_util::toSnakeCase(instance_name))),
-  qos_{qos}
+: RosConditionNode(instance_name, config, context), qos_{qos}
 {
-  // Consider aliasing in ports and copy the values from aliased to original ports
-  this->modifyPortsRemapping(context_.copyAliasedPortValuesToOriginalPorts(this));
+  // Port aliasing is already applied by RosConditionNode ctor.
 
   if (const BT::Expected<std::string> expected_name = context_.getTopicName(this)) {
     createPublisher(expected_name.value());
@@ -178,15 +170,11 @@ inline bool RosPublisherNode<MessageT>::createPublisher(const std::string & topi
   // Check if the publisher with given name is already set up
   if (publisher_ && topic_name_ == topic_name) return true;
 
-  rclcpp::Node::SharedPtr node = context_.nh_.lock();
-  if (!node) {
-    throw exceptions::RosNodeError(
-      context_.getFullyQualifiedTreeNodeName(this) +
-      " - The weak pointer to the ROS 2 node expired. The tree node doesn't "
-      "take ownership of it.");
-  }
+  rclcpp::Node::SharedPtr node = context_.getRosNode();
 
-  publisher_ = node->template create_publisher<MessageT>(topic_name, qos_);
+  // Reuse a publisher shared across tree nodes with the same topic name, or create one on first use.
+  publisher_ = this->template getSharedEntity<Publisher>(
+    topic_name, [&] { return node->template create_publisher<MessageT>(topic_name, qos_); });
   topic_name_ = topic_name;
   RCLCPP_DEBUG(
     logger_, "%s - Created publisher for topic '%s'.", context_.getFullyQualifiedTreeNodeName(this).c_str(),
@@ -199,11 +187,11 @@ inline bool RosPublisherNode<MessageT>::createPublisher(const std::string & topi
 
   const auto start_time = context_.getCurrentTime();
   while (rclcpp::ok() && publisher_->get_subscription_count() == 0) {
-    if ((context_.getCurrentTime() - start_time) > context_.registration_options_.wait_timeout) {
+    if ((context_.getCurrentTime() - start_time) > context_.getRegistrationOptions().wait_timeout) {
       RCLCPP_DEBUG(
         logger_, "%s - Timeout waiting for subscriber to connect to topic '%s' after %.2f seconds.",
         context_.getFullyQualifiedTreeNodeName(this).c_str(), topic_name_.c_str(),
-        context_.registration_options_.wait_timeout.count());
+        context_.getRegistrationOptions().wait_timeout.count());
       break;
     }
     rclcpp::sleep_for(std::chrono::milliseconds(5));
@@ -213,14 +201,14 @@ inline bool RosPublisherNode<MessageT>::createPublisher(const std::string & topi
     RCLCPP_DEBUG(
       logger_, "%s - At least one subscriber found.", context_.getFullyQualifiedTreeNodeName(this).c_str(),
       topic_name_.c_str());
-  } else if (context_.registration_options_.allow_unreachable) {
+  } else if (context_.getRegistrationOptions().allow_unreachable) {
     RCLCPP_WARN(
       logger_, "%s - No subscriber connected to topic '%s', but continuing as allow_unreachable is true.",
       context_.getFullyQualifiedTreeNodeName(this).c_str(), topic_name_.c_str());
   } else {
     throw exceptions::RosNodeError(
       context_.getFullyQualifiedTreeNodeName(this) + " - No subscriber connected to topic '" + topic_name_ +
-      "' after waiting for " + std::to_string(context_.registration_options_.wait_timeout.count()) + " seconds.");
+      "' after waiting for " + std::to_string(context_.getRegistrationOptions().wait_timeout.count()) + " seconds.");
   }
   return true;
 }
@@ -250,7 +238,7 @@ inline BT::NodeStatus RosPublisherNode<MessageT>::tick()
         context_.getFullyQualifiedTreeNodeName(this) +
         " - Cannot create the publisher because the topic name couldn't be resolved using "
         "the expression specified in the node's registration options (" +
-        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.registration_options_.topic +
+        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.getRegistrationOptions().topic +
         "). Error message: " + expected_name.error());
     }
   }

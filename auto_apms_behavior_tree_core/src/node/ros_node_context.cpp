@@ -82,6 +82,26 @@ std::string RosNodeContext::getFullyQualifiedTreeNodeName(const BT::TreeNode * n
 
 YAML::Node RosNodeContext::getExtraOptions() const { return registration_options_.extra; }
 
+rclcpp::Node::SharedPtr RosNodeContext::getRosNode() const
+{
+  const rclcpp::Node::SharedPtr node = nh_.lock();
+  if (!node) {
+    throw exceptions::RosNodeError(
+      "Cannot access the associated ROS 2 node from the RosNodeContext because the weak pointer expired. The tree "
+      "node doesn't take ownership of it.");
+  }
+  return node;
+}
+
+rclcpp::CallbackGroup::SharedPtr RosNodeContext::getWaitablesCallbackGroup() const { return cb_group_.lock(); }
+
+rclcpp::executors::SingleThreadedExecutor::SharedPtr RosNodeContext::getWaitablesExecutor() const
+{
+  return executor_.lock();
+}
+
+const NodeRegistrationOptions & RosNodeContext::getRegistrationOptions() const { return registration_options_; }
+
 BT::Expected<std::string> RosNodeContext::getTopicName(const BT::TreeNode * node) const
 {
   std::string res = registration_options_.topic;
@@ -141,12 +161,18 @@ BT::Expected<std::string> RosNodeContext::getTopicName(const BT::TreeNode * node
 
 /**
  * @brief Parse alias port name and optional description from format "alias_name" or "alias_name (description)"
+ *
+ * The description is delimited by the outermost pair of round brackets, so it may itself contain further round
+ * brackets, e.g. "alias_name (a description (with nested) brackets)" yields the description
+ * "a description (with nested) brackets".
  * @param str Input string to parse.
  * @return Pair of alias name and description (empty if not provided).
  */
 std::pair<std::string, std::string> parseAliasPortName(const std::string & str)
 {
-  static const std::regex alias_regex(R"(^\s*([^\s(]+)\s*(?:\(([^)]*)\))?\s*$)");
+  // The description group is greedy ((.*) rather than ([^)]*)) so it extends to the last ')' in the string. This lets
+  // the description contain round brackets of its own while the outermost pair still delimits it.
+  static const std::regex alias_regex(R"(^\s*([^\s(]+)\s*(?:\((.*)\))?\s*$)");
   std::smatch match;
   if (std::regex_match(str, match, alias_regex)) {
     return {match[1].str(), match[2].str()};  // {alias_name, description}
@@ -208,41 +234,30 @@ void RosNodeContext::modifyProvidedPortsListForRegistration(BT::PortsList & port
   }
 }
 
-BT::PortsRemapping RosNodeContext::copyAliasedPortValuesToOriginalPorts(const BT::TreeNode * node) const
+void RosNodeContext::copyAliasedPortValuesToOriginalPorts(const BT::TreeNode * node) const
 {
-  const BT::PortsRemapping & input_ports = node->config().input_ports;
-  const BT::PortsRemapping & output_ports = node->config().output_ports;
+  // The node owns its NodeConfig; config() only hands back a const reference. We copy the aliased port values directly
+  // onto the original ports here rather than going through BT::TreeNode::modifyPortsRemapping, because that only
+  // *updates* ports already present in the config. The original port is typically absent from the config when it has
+  // no default value and the user only ever sets the aliased port, so it must be *inserted* - otherwise the node reads
+  // an unset original port (e.g. an empty list for a std::vector<std::string> port, or an outright getInput() failure).
+  BT::NodeConfig & config = const_cast<BT::NodeConfig &>(node->config());
 
-  BT::PortsRemapping remapping;
+  // Iterate the configured aliases (original -> aliased) rather than the node's populated ports: the value the user
+  // provides lives on the *aliased* port and must be copied onto the *original* port the node implementation reads via
+  // getInput()/getOutput().
+  for (const auto & [original_port_name, aliased_port_spec] : registration_options_.port_alias) {
+    const auto [aliased_port_name, _] = parseAliasPortName(aliased_port_spec);
 
-  // Lambda for handling aliasing
-  auto process_ports = [&](const BT::PortsRemapping & node_ports) {
-    for (const auto & [original_key, port_info] : node_ports) {
-      // Check if this original port has been aliased
-      const auto alias_it = registration_options_.port_alias.find(original_key);
-      if (alias_it != registration_options_.port_alias.end()) {
-        // Port has been aliased, copy value from aliased port to original port
-        const auto [aliased_port_name, _] = parseAliasPortName(alias_it->second);
-        auto aliased_port_it = node_ports.find(aliased_port_name);
-        if (aliased_port_it != node_ports.end()) {
-          // Aliased port exists, copy its value to the original port
-          remapping[original_key] = aliased_port_it->second;
-        } else {
-          throw exceptions::NodeRegistrationError(
-            "Error processing port aliasing: Cannot find aliased port '" + aliased_port_name + "' for original port '" +
-            original_key + "' in provided ports by node '" + getFullyQualifiedTreeNodeName(node, true) + "'.");
-        }
-      } else {
-        // No aliasing for this port, nothing to do
-      }
+    // The aliased port may be an input or an output port; copy from whichever map holds its value. If the aliased port
+    // carries no value at all (neither set in the XML nor via a default), there is nothing to copy and the original
+    // port is left unset - exactly as if the port had not been provided.
+    if (const auto it = config.input_ports.find(aliased_port_name); it != config.input_ports.end()) {
+      config.input_ports[original_port_name] = it->second;
+    } else if (const auto out_it = config.output_ports.find(aliased_port_name); out_it != config.output_ports.end()) {
+      config.output_ports[original_port_name] = out_it->second;
     }
-  };
-
-  // Process input and output ports
-  process_ports(input_ports);
-  process_ports(output_ports);
-
-  return remapping;
+  }
 }
 
 }  // namespace auto_apms_behavior_tree::core

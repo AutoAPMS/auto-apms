@@ -19,9 +19,8 @@
 #include <string>
 
 #include "auto_apms_behavior_tree_core/exceptions.hpp"
-#include "auto_apms_behavior_tree_core/node/ros_node_context.hpp"
-#include "auto_apms_util/string.hpp"
-#include "behaviortree_cpp/action_node.h"
+#include "auto_apms_behavior_tree_core/node/base/ros_action_node_base.hpp"
+#include "auto_apms_util/logging.hpp"
 #include "rclcpp/executors.hpp"
 
 namespace auto_apms_behavior_tree::core
@@ -89,7 +88,7 @@ inline const char * toStr(const ServiceNodeErrorCode & err)
  * @tparam ServiceT Type of the ROS 2 service.
  */
 template <class ServiceT>
-class RosServiceNode : public BT::ActionNodeBase
+class RosServiceNode : public RosActionNodeBase
 {
   using ServiceClient = typename rclcpp::Client<ServiceT>;
   using ServiceClientPtr = std::shared_ptr<ServiceClient>;
@@ -102,8 +101,6 @@ class RosServiceNode : public BT::ActionNodeBase
     ServiceClientPtr service_client;
     std::string name;
   };
-
-  using ClientsRegistry = std::unordered_map<std::string, std::weak_ptr<ServiceClientInstance>>;
 
 public:
   using ServiceType = ServiceT;
@@ -192,18 +189,11 @@ public:
   std::string getServiceName() const;
 
 protected:
-  const Context context_;
-  const rclcpp::Logger logger_;
-
   BT::NodeStatus tick() override final;
 
   void halt() override final;
 
 private:
-  static std::mutex & getMutex();
-
-  static ClientsRegistry & getRegistry();
-
   bool dynamic_client_instance_ = false;
   std::shared_ptr<ServiceClientInstance> client_instance_;
   typename ServiceClient::SharedFuture future_;
@@ -228,12 +218,9 @@ inline RosServiceNode<ServiceT>::ServiceClientInstance::ServiceClientInstance(
 template <class ServiceT>
 inline RosServiceNode<ServiceT>::RosServiceNode(
   const std::string & instance_name, const Config & config, Context context)
-: BT::ActionNodeBase(instance_name, config),
-  context_(context),
-  logger_(context.getChildLogger(auto_apms_util::toSnakeCase(instance_name)))
+: RosActionNodeBase(instance_name, config, context)
 {
-  // Consider aliasing in ports and copy the values from aliased to original ports
-  this->modifyPortsRemapping(context_.copyAliasedPortValuesToOriginalPorts(this));
+  // The base class stores the context/logger and applies the node manifest 'port_alias' feature.
 
   // Resolve topic field
   if (const BT::Expected<std::string> expected_name = context_.getTopicName(this)) {
@@ -271,7 +258,7 @@ inline BT::NodeStatus RosServiceNode<ServiceT>::tick()
         context_.getFullyQualifiedTreeNodeName(this) +
         " - Cannot create the service client because the service name couldn't be resolved using "
         "the expression specified by the node's registration parameters (" +
-        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.registration_options_.topic +
+        NodeRegistrationOptions::PARAM_NAME_ROS2TOPIC + ": " + context_.getRegistrationOptions().topic +
         "). Error message: " + expected_name.error());
     }
   }
@@ -328,7 +315,7 @@ inline BT::NodeStatus RosServiceNode<ServiceT>::tick()
     // FIRST case: check if the goal request has a timeout
     if (!response_) {
       // See if we must time out
-      if ((context_.getCurrentTime() - time_request_sent_) > context_.registration_options_.request_timeout) {
+      if ((context_.getCurrentTime() - time_request_sent_) > context_.getRegistrationOptions().request_timeout) {
         // Remove the pending request with the client if timed out
         client_instance_->service_client->remove_pending_request(request_id_);
         return check_status(onFailure(SERVICE_TIMEOUT));
@@ -392,41 +379,24 @@ inline bool RosServiceNode<ServiceT>::createClient(const std::string & service_n
     return true;
   }
 
-  std::unique_lock lk(getMutex());
-
-  rclcpp::Node::SharedPtr node = context_.nh_.lock();
-  if (!node) {
-    throw exceptions::RosNodeError(
-      context_.getFullyQualifiedTreeNodeName(this) +
-      " - The weak pointer to the ROS 2 node expired. The tree node doesn't "
-      "take ownership of it.");
-  }
-  rclcpp::CallbackGroup::SharedPtr group = context_.cb_group_.lock();
+  rclcpp::Node::SharedPtr node = context_.getRosNode();
+  rclcpp::CallbackGroup::SharedPtr group = context_.getWaitablesCallbackGroup();
   if (!group) {
     throw exceptions::RosNodeError(
       context_.getFullyQualifiedTreeNodeName(this) +
       " - The weak pointer to the ROS 2 callback group expired. The tree node doesn't "
       "take ownership of it.");
   }
-  auto client_key = std::string(node->get_fully_qualified_name()) + "/" + service_name;
 
-  auto & registry = getRegistry();
-  auto it = registry.find(client_key);
-  if (it == registry.end() || it->second.expired()) {
-    client_instance_ = std::make_shared<ServiceClientInstance>(node, group, service_name);
-    registry.insert({client_key, client_instance_});
-    RCLCPP_DEBUG(
-      logger_, "%s - Created client for service '%s'.", context_.getFullyQualifiedTreeNodeName(this).c_str(),
-      service_name.c_str());
-  } else {
-    client_instance_ = it->second.lock();
-  }
+  // Reuse a service client shared across tree nodes with the same service name, or create one on first use.
+  client_instance_ = this->template getSharedEntity<ServiceClientInstance>(
+    service_name, [&] { return std::make_shared<ServiceClientInstance>(node, group, service_name); });
 
-  bool found = client_instance_->service_client->wait_for_service(context_.registration_options_.wait_timeout);
+  bool found = client_instance_->service_client->wait_for_service(context_.getRegistrationOptions().wait_timeout);
   if (!found) {
     std::string msg = context_.getFullyQualifiedTreeNodeName(this) + " - Service with name '" + client_instance_->name +
                       "' is not reachable.";
-    if (context_.registration_options_.allow_unreachable) {
+    if (context_.getRegistrationOptions().allow_unreachable) {
       RCLCPP_WARN_STREAM(logger_, msg);
     } else {
       RCLCPP_ERROR_STREAM(logger_, msg);
@@ -441,20 +411,6 @@ inline std::string RosServiceNode<ServiceT>::getServiceName() const
 {
   if (client_instance_) return client_instance_->name;
   return "unknown";
-}
-
-template <class ServiceT>
-inline std::mutex & RosServiceNode<ServiceT>::getMutex()
-{
-  static std::mutex action_client_mutex;
-  return action_client_mutex;
-}
-
-template <class ServiceT>
-inline typename RosServiceNode<ServiceT>::ClientsRegistry & RosServiceNode<ServiceT>::getRegistry()
-{
-  static ClientsRegistry clients_registry;
-  return clients_registry;
 }
 
 }  // namespace auto_apms_behavior_tree::core

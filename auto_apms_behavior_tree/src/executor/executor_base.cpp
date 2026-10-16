@@ -53,15 +53,34 @@ std::shared_future<TreeExecutorBase::ExecutionResult> TreeExecutorBase::startExe
       "Cannot start execution with tree '" + getTreeName() + "' currently executing.");
   }
 
+  std::unique_ptr<Tree> tree_ptr;
   try {
     // Lives inside BT::Tree once it is created
     TreeBlackboardSharedPtr main_tree_bb_ptr = TreeBlackboard::create(global_blackboard_ptr_);
-    // Create the tree from the provided callback and store it in the executor
-    tree_ptr_.reset(new Tree(make_tree(main_tree_bb_ptr)));
+    // Create the tree from the provided callback
+    tree_ptr = std::make_unique<Tree>(make_tree(main_tree_bb_ptr));
   } catch (const std::exception & e) {
     throw exceptions::TreeBuildError(
       "Cannot start execution because creating the tree failed: " + std::string(e.what()));
   }
+
+  // Hand the freshly created tree over to the overload that starts the execution routine.
+  return startExecution(std::move(tree_ptr), tick_rate_sec, groot2_port);
+}
+
+std::shared_future<TreeExecutorBase::ExecutionResult> TreeExecutorBase::startExecution(
+  std::unique_ptr<Tree> tree, double tick_rate_sec, int groot2_port)
+{
+  if (isBusy()) {
+    throw exceptions::TreeExecutorError(
+      "Cannot start execution with tree '" + getTreeName() + "' currently executing.");
+  }
+  if (!tree) {
+    throw exceptions::TreeExecutorError("Cannot start execution because the provided tree is nullptr.");
+  }
+
+  // Take ownership of the already created tree
+  tree_ptr_ = std::move(tree);
 
   // Groot2 publisher
   groot2_publisher_ptr_.reset();

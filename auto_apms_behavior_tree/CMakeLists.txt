@@ -347,9 +347,11 @@ if(BUILD_TESTING)
   find_package(ament_cmake_copyright REQUIRED)
   ament_copyright()
 
-  # Register a test behavior tree for resource discovery tests.
+  # Register test behavior trees. test_tree.xml is used by the resource discovery tests; include_e2e.xml is a richer
+  # fixture (multiple trees, composed via SubTree) used by the end-to-end <include autoapms="..."/> tests.
   auto_apms_behavior_tree_register_trees(
     "test/resource/test_tree.xml"
+    "test/resource/include_e2e.xml"
   )
 
   # Register a test node manifest that uses the parent field, for testing the
@@ -363,6 +365,8 @@ if(BUILD_TESTING)
     "test/unit/node_registration.cpp"
     "test/unit/tree_document_model_templates.cpp"
     "test/unit/resource_discovery.cpp"
+    "test/unit/tree_document_include_resource.cpp"
+    "test/unit/executor_node_parameters.cpp"
   )
   target_link_libraries(${PROJECT_NAME}_unit_tests ${PROJECT_NAME})
 

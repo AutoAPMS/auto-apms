@@ -41,7 +41,7 @@ public:
    * Parses the workspace for behavior tree node plugins and performs an ambiguity check that is supposed to detect
    * duplicate class names. If any duplicate class names are found, it throws an error.
    * @param exclude_packages Packages to exclude when searching for associated plugin resources.
-   * @throw See PluginClassLoader::makeUnambiguousPluginClassLoader.
+   * @throw See PluginClassLoader::PluginClassLoader and PluginClassLoader::verifyUnambiguousClassNames.
    */
   NodeRegistrationLoader(const std::set<std::string> & exclude_packages = {});
 };

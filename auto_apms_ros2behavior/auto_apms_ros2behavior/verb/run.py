@@ -81,7 +81,7 @@ class RunVerb(VerbExtension):
             "--blackboard",
             nargs="*",
             metavar="key:=value",
-            help="Blackboard variables to pass to the behavior tree",
+            help="Global blackboard variables to pass to the behavior tree",
             default=[],
         )
         parser.add_argument(

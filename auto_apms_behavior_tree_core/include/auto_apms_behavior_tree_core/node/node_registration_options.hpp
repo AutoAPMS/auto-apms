@@ -113,7 +113,7 @@ struct NodeRegistrationOptions
   /// Period [s] (measured from tree construction) after the server is considered unreachable. For publishers, this
   /// parameter defines how long to wait for at least one subscriber to connect.
   std::chrono::duration<double> wait_timeout = std::chrono::duration<double>(5);
-  /// Period [s] (measured from sending a goal request) after the node aborts waiting for a server response.
+  /// Period [s] (measured from sending a request) after the node aborts waiting for a server response.
   std::chrono::duration<double> request_timeout = std::chrono::duration<double>(5);
   /// Flag whether to tolerate if the action/service is unreachable when trying to create the client. If set to
   /// `true`, a warning is logged. Otherwise, an exception is raised.

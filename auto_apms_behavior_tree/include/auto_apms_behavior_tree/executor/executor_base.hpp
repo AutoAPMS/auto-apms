@@ -135,6 +135,42 @@ public:
   std::shared_future<ExecutionResult> startExecution(
     TreeConstructor make_tree, const std::chrono::duration<TimeRepT, TimeT> & tick_rate, int groot2_port = -1);
 
+  /**
+   * @brief Start executing a behavior tree that has already been created.
+   *
+   * Unlike the TreeConstructor overloads, this variant lets the caller construct the `BT::Tree` themselves (e.g. via
+   * GenericTreeExecutorNode::makeTreeConstructor) and hand over ownership. This decouples the potentially expensive
+   * tree construction from starting the execution routine, so a caller can build the tree ahead of time and react to
+   * build failures before committing to execution (e.g. abort registration if the tree cannot be built).
+   *
+   * @note For global blackboard entries (the `@`-prefixed keys) to resolve at runtime, @p tree must have been created
+   * with a blackboard rooted at this executor's global blackboard (see getGlobalBlackboardPtr).
+   * @param tree Ownership of the behavior tree to execute. Must not be `nullptr`.
+   * @param tick_rate_sec Behavior tree tick rate in seconds (1 tick every @p tick_rate_sec seconds) i.e. the interval
+   * of the timer that regularly invokes the execution routine.
+   * @param groot2_port Port number used for introspection and debugging with Groot2. `-1` means that no
+   * `BT::Groot2Publisher` will be installed.
+   * @return Shared future that completes once executing the tree is finished or an error occurs.
+   * @throw auto_apms_behavior_tree::exceptions::TreeExecutorError if the executor is busy or @p tree is `nullptr`.
+   */
+  std::shared_future<ExecutionResult> startExecution(
+    std::unique_ptr<Tree> tree, double tick_rate_sec = 0.1, int groot2_port = -1);
+
+  /**
+   * @brief Start executing a behavior tree that has already been created.
+   *
+   * @sa startExecution(std::unique_ptr<Tree>, double, int) for details.
+   * @param tree Ownership of the behavior tree to execute. Must not be `nullptr`.
+   * @param tick_rate Behavior tree tick rate i.e. the interval of the timer that regularly invokes the execution
+   * routine.
+   * @param groot2_port Port number used for introspection and debugging with Groot2. `-1` means that no
+   * `BT::Groot2Publisher` will be installed.
+   * @return Shared future that completes once executing the tree is finished or an error occurs.
+   */
+  template <typename TimeRepT = int64_t, typename TimeT = std::milli>
+  std::shared_future<ExecutionResult> startExecution(
+    std::unique_ptr<Tree> tree, const std::chrono::duration<TimeRepT, TimeT> & tick_rate, int groot2_port = -1);
+
 private:
   void tick_callback_(TerminationCallback termination_callback);
 
@@ -293,6 +329,14 @@ inline std::shared_future<TreeExecutorBase::ExecutionResult> TreeExecutorBase::s
 {
   return startExecution(
     make_tree, std::chrono::duration_cast<std::chrono::duration<double>>(tick_rate).count(), groot2_port);
+}
+
+template <typename TimeRepT, typename TimeT>
+inline std::shared_future<TreeExecutorBase::ExecutionResult> TreeExecutorBase::startExecution(
+  std::unique_ptr<Tree> tree, const std::chrono::duration<TimeRepT, TimeT> & tick_rate, int groot2_port)
+{
+  return startExecution(
+    std::move(tree), std::chrono::duration_cast<std::chrono::duration<double>>(tick_rate).count(), groot2_port);
 }
 
 }  // namespace auto_apms_behavior_tree

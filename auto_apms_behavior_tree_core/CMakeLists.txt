@@ -42,6 +42,11 @@ add_library(${PROJECT_NAME} SHARED
   "src/node/node_model_type.cpp"
   "src/node/node_manifest.cpp"
   "src/node/ros_node_context.cpp"
+  "src/node/base/ros_node_base.cpp"
+  "src/node/base/ros_action_node_base.cpp"
+  "src/node/base/ros_condition_node.cpp"
+  "src/node/base/ros_decorator_node.cpp"
+  "src/node/base/ros_control_node.cpp"
   "src/node/node_registration_loader.cpp"
   "src/node/node_registration_from_library_adapter.cpp"
   "src/tree/script.cpp"
@@ -130,9 +135,10 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/node_manifest.cpp"
     "test/unit/ros_subscriber_node.cpp"
+    "test/unit/ros_node_port_alias.cpp"
     "test/unit/tree_document_node_element.cpp"
     "test/unit/tree_document_node_model.cpp"
-    "test/unit/tree_document_recursive_include.cpp"
+    "test/unit/tree_document_include.cpp"
     "test/unit/tree_document_tree_generation.cpp"
   )
   target_link_libraries(${PROJECT_NAME}_unit_tests
