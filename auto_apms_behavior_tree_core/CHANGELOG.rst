@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.6.0 (2026-10-16)
+------------------
 * fix: resolve port_alias not working correctly
 * feature: add behavior tree node base classes for native node manifest support
 * feature: add new include tag for including autoapms tree resources

@@ -18,7 +18,7 @@ package_name = "auto_apms_ros2behavior"
 
 setup(
     name=package_name,
-    version="1.5.1",
+    version="1.6.0",
     packages=find_packages(exclude=["test"]),
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),

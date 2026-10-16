@@ -2,8 +2,8 @@
 Changelog for package auto_apms_ros2behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.6.0 (2026-10-16)
+------------------
 * feature: add new include tag for including autoapms tree resources
 * hotfix: replace tests_require with extras_require to avoid warning
 * cli: Replace keep_blackboard with clear_blackboard arg

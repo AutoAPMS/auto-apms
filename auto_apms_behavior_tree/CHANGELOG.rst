@@ -2,8 +2,8 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.6.0 (2026-10-16)
+------------------
 * add startExecution method to TreeExecutorBase that allows for providing a finished BT::Tree
 * feature: add new include tag for including autoapms tree resources
 * feat: add option to toggle tree executor's strict unkown parameter removal
