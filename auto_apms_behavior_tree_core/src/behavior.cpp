@@ -99,10 +99,10 @@ std::set<BehaviorResourceIdentity> getBehaviorResourceIdentities(
   std::set<BehaviorResourceIdentity> identities;
   for (const auto & p : auto_apms_util::getPackagesWithResourceType(
          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, exclude_packages)) {
-    std::string content;
-    std::string base_path;
-    if (ament_index_cpp::get_resource(
-          _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p, content, &base_path)) {
+    const ament_index_cpp::PathWithResource resource =
+      ament_index_cpp::get_resource(_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_TYPE_NAME__BEHAVIOR, p);
+    if (resource.resourcePath) {
+      const std::string & content = resource.contents;
       for (const auto & line :
            auto_apms_util::splitString(content, _AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_MARKER_FILE_LINE_SEP)) {
         const std::vector<std::string> parts = auto_apms_util::splitString(

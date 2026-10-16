@@ -29,7 +29,7 @@ std::set<std::string> getPackagesWithResourceType(
   const std::string & resource_type, const std::set<std::string> & exclude_packages)
 {
   std::set<std::string> packages;
-  for (const auto & [package, _] : ament_index_cpp::get_resources(resource_type)) {
+  for (const auto & [package, _] : ament_index_cpp::get_resources_by_name(resource_type)) {
     packages.insert(package);
   }
   if (const std::set<std::string> common = getCommonElements(packages, exclude_packages); !common.empty()) {
@@ -45,17 +45,16 @@ std::set<std::string> getPackagesWithPluginResources(const std::set<std::string>
 
 std::string getPluginXMLPath(const std::string & package)
 {
-  std::string content;
-  std::string base_path;
-  if (ament_index_cpp::get_resource(PLUGIN_RESOURCE_TYPE, package, content, &base_path)) {
-    std::vector<std::string> paths = splitString(content, "\n");
+  const ament_index_cpp::PathWithResource resource = ament_index_cpp::get_resource(PLUGIN_RESOURCE_TYPE, package);
+  if (resource.resourcePath) {
+    std::vector<std::string> paths = splitString(resource.contents, "\n");
     if (paths.size() != 1) {
       throw exceptions::ResourceError(
         "Invalid '" + PLUGIN_RESOURCE_TYPE + "' resource marker file installed by package '" + package +
         "'. Must contain a single line with a relative path to the plugins.xml "
         "manifest file with respect to the package's install prefix.");
     }
-    return base_path + '/' + paths[0];
+    return resource.resourcePath->string() + '/' + paths[0];
   }
   throw exceptions::ResourceError(
     "Cannot find a plugin.xml file in package '" + package + "' (Plugin resource type is: '" + PLUGIN_RESOURCE_TYPE +

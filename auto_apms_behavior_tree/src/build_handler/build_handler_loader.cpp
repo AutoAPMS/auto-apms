@@ -21,8 +21,9 @@ const std::string TreeBuildHandlerLoader::BASE_PACKAGE_NAME = "auto_apms_behavio
 const std::string TreeBuildHandlerLoader::BASE_CLASS_NAME = "auto_apms_behavior_tree::TreeBuildHandlerFactoryInterface";
 
 TreeBuildHandlerLoader::TreeBuildHandlerLoader(const std::set<std::string> & exclude_packages)
-: PluginClassLoader(makeUnambiguousPluginClassLoader(BASE_PACKAGE_NAME, BASE_CLASS_NAME, exclude_packages))
+: PluginClassLoader(BASE_PACKAGE_NAME, BASE_CLASS_NAME, exclude_packages)
 {
+  verifyUnambiguousClassNames(BASE_PACKAGE_NAME, BASE_CLASS_NAME, exclude_packages);
 }
 
 }  // namespace auto_apms_behavior_tree

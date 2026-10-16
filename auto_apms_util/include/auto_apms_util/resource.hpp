@@ -158,6 +158,29 @@ public:
     const std::map<std::string, std::string> & reserved_names = {});
 
   /**
+   * @brief Perform the ambiguity check of makeUnambiguousPluginClassLoader without creating a PluginClassLoader.
+   *
+   * Verifies that only unique class names are being registered by the searched packages. This is useful for derived
+   * loaders that must construct their base class directly, since PluginClassLoader is neither copyable nor movable.
+   *
+   * @param base_package Name of the package containing the @p base_class. Will throw an error if it is not
+   * installed.
+   * @param base_class Fully qualified name of the base class that the class loader will use for determining which
+   * classes listed in a plugins.xml file are associated with this instance.
+   * @param exclude_packages Packages to exclude when searching for plugins.
+   * @param reserved_names Map of reserved class names and the package name that makes the reservation. If any of these
+   * class names are found, an error is being raised (Used internally during build time when installed resources aren't
+   * available yet).
+   * @throws ament_index_cpp::PackageNotFoundError if @p base_package is not installed.
+   * @throws auto_apms_util::exceptions::ResourceError if multiple packages register a resource using the same class
+   * name (or a name in @p reserved_names is found).
+   */
+  static void verifyUnambiguousClassNames(
+    const std::string & base_package, const std::string & base_class,
+    const std::set<std::string> & exclude_packages = {},
+    const std::map<std::string, std::string> & reserved_names = {});
+
+  /**
    * @brief Retrieve a map that contains information about which package a plugin class belongs to.
    * @return Mapping according to {class_name: package_name}.
    */
@@ -177,6 +200,15 @@ inline PluginClassLoader<BaseT>::PluginClassLoader(
 
 template <typename BaseT>
 inline PluginClassLoader<BaseT> PluginClassLoader<BaseT>::makeUnambiguousPluginClassLoader(
+  const std::string & base_package, const std::string & base_class, const std::set<std::string> & exclude_packages,
+  const std::map<std::string, std::string> & reserved_names)
+{
+  verifyUnambiguousClassNames(base_package, base_class, exclude_packages, reserved_names);
+  return {base_package, base_class, exclude_packages};
+}
+
+template <typename BaseT>
+inline void PluginClassLoader<BaseT>::verifyUnambiguousClassNames(
   const std::string & base_package, const std::string & base_class, const std::set<std::string> & exclude_packages,
   const std::map<std::string, std::string> & reserved_names)
 {
@@ -206,11 +238,10 @@ inline PluginClassLoader<BaseT> PluginClassLoader<BaseT>::makeUnambiguousPluginC
   if (!error_details.empty()) {
     throw exceptions::ResourceError(
       "Ambiguous class names found! PluginClassLoader (Base: " + base_class +
-      ") created with makeUnambiguousPluginClassLoader() won't register resources from packages "
+      ") verified with verifyUnambiguousClassNames() won't register resources from packages "
       "that use already existing lookup names. Found the following duplicates:\n" +
       auto_apms_util::join(error_details, "\n"));
   }
-  return {base_package, base_class, exclude_packages};
 }
 
 template <typename BaseT>
