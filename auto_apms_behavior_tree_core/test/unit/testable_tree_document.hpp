@@ -32,7 +32,8 @@ public:
    * @brief Add a test node to the internal manifest and factory.
    * This bypasses the plugin loader check that registerNodes performs.
    */
-  TestableTreeDocument & addTestNode(const std::string & node_name, const std::string & class_name = "test::TestClass")
+  TestableTreeDocument & addTestNode(
+    const std::string & node_name, const std::string & class_name = "test::TestClass", const BT::PortsList & ports = {})
   {
     // Add to internal manifest (accessible since it's now protected)
     auto_apms_behavior_tree::core::NodeManifest::RegistrationOptions opts;
@@ -41,7 +42,7 @@ public:
 
     // Also register with factory so the document can work with these nodes
     if (factory_.builtinNodes().count(node_name) == 0) {
-      factory_.registerSimpleAction(node_name, [](BT::TreeNode &) { return BT::NodeStatus::SUCCESS; });
+      factory_.registerSimpleAction(node_name, [](BT::TreeNode &) { return BT::NodeStatus::SUCCESS; }, ports);
     }
 
     return *this;

@@ -22,6 +22,21 @@ namespace auto_apms_behavior_tree::core
 
 bool NodeRegistrationOptions::valid() const { return !class_name.empty(); }
 
+bool NodeRegistrationOptions::operator==(const NodeRegistrationOptions & other) const
+{
+  // Compare by canonical YAML serialization. This is the single source of truth for registration-options equality:
+  // it covers every field (including the free-form 'extra' node) without requiring per-field comparison and keeps the
+  // semantics identical on both sides of the comparison.
+  const auto fingerprint = [](const NodeRegistrationOptions & options) {
+    YAML::Emitter emitter;
+    emitter << YAML::Flow << YAML::convert<NodeRegistrationOptions>::encode(options);
+    return std::string(emitter.c_str());
+  };
+  return fingerprint(*this) == fingerprint(other);
+}
+
+bool NodeRegistrationOptions::operator!=(const NodeRegistrationOptions & other) const { return !(*this == other); }
+
 }  // namespace auto_apms_behavior_tree::core
 
 /// @cond INTERNAL
