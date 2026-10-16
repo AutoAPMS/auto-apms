@@ -2,6 +2,11 @@
 Changelog for package auto_apms_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add SetBehavior service
+* Contributors: Robin Müller
+
 1.5.1 (2026-04-07)
 ------------------
 

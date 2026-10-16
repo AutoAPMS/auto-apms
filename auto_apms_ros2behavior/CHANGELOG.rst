@@ -2,6 +2,15 @@
 Changelog for package auto_apms_ros2behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* feature: add new include tag for including autoapms tree resources
+* hotfix: replace tests_require with extras_require to avoid warning
+* cli: Replace keep_blackboard with clear_blackboard arg
+  Co-authored-by: Copilot <copilot@github.com>
+* cli: add namespace argument to behavior run and behavior node call commands
+* Contributors: Robin Müller
+
 1.5.1 (2026-04-07)
 ------------------
 

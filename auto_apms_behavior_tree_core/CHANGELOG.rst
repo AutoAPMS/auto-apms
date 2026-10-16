@@ -2,6 +2,35 @@
 Changelog for package auto_apms_behavior_tree_core
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix: resolve port_alias not working correctly
+* feature: add behavior tree node base classes for native node manifest support
+* feature: add new include tag for including autoapms tree resources
+* hotfix: register_nodes may compose a new node manifest out of existing manfiests
+* hotfix: fix return local address warning when generating node model header
+* fix: make node manifest entries with parent fields extend its parent
+* Merge pull request `#21 <https://github.com/AutoAPMS/auto-apms/issues/21>`_ from AutoAPMS/feature/node-manifest-parent-option
+  Add parent field support to node registration options and tests
+* Update API docs
+* Fix same-package parent declarations in node manifests not working during configure time
+* remove unnecessary parent option tests
+* Add parent field support to node registration options and tests
+  - Introduced a parent field in NodeRegistrationOptions for inheritance.
+  - Updated YAML encoding/decoding to handle parent field resolution.
+  - Added tests for parent field functionality in NodeRegistrationOptions and NodeManifest.
+  - Created a test node manifest for verifying parent field resolution.
+* add remove_whitespace when serializing trees
+  Co-authored-by: Copilot <copilot@github.com>
+* feature: add auto_register_nodes argument for the TreeDocument API
+  Co-authored-by: Copilot <copilot@github.com>
+* fix: properly escape pipes in generated node reference markdown
+  Co-authored-by: Copilot <copilot@github.com>
+* fix: custom string conversion methods not included in node plugins translation unit
+* fix: accumulating node manifests from identical metadata ids results in file name collision
+  Co-authored-by: Copilot <copilot@github.com>
+* Contributors: Robin Müller
+
 1.5.1 (2026-04-07)
 ------------------
 * feature: add executor ctor accepting a shared node pointer

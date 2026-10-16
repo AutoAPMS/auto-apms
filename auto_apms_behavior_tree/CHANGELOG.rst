@@ -2,6 +2,27 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add startExecution method to TreeExecutorBase that allows for providing a finished BT::Tree
+* feature: add new include tag for including autoapms tree resources
+* feat: add option to toggle tree executor's strict unkown parameter removal
+* Merge pull request `#21 <https://github.com/AutoAPMS/auto-apms/issues/21>`_ from AutoAPMS/feature/node-manifest-parent-option
+  Add parent field support to node registration options and tests
+* Add parent field support to node registration options and tests
+  - Introduced a parent field in NodeRegistrationOptions for inheritance.
+  - Updated YAML encoding/decoding to handle parent field resolution.
+  - Added tests for parent field functionality in NodeRegistrationOptions and NodeManifest.
+  - Created a test node manifest for verifying parent field resolution.
+* Add composition and lifecycle behavior tree nodes
+* executor: make generic executor node more accessible when using composition
+* cli: assume a default tick rate if no parameter is defined by the executor node
+* cli: Replace keep_blackboard with clear_blackboard arg
+  Co-authored-by: Copilot <copilot@github.com>
+* cli: add namespace argument to behavior run and behavior node call commands
+* Add PublishTwist standard node
+* Contributors: Robin Müller
+
 1.5.1 (2026-04-07)
 ------------------
 * feature: add executor ctor accepting a shared node pointer

@@ -2,6 +2,9 @@
 Changelog for package auto_apms_examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.5.1 (2026-04-07)
 ------------------
 * feature: allow encoding inital blackboard in entry point

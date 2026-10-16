@@ -2,6 +2,9 @@
 Changelog for package auto_apms_mission
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.5.1 (2026-04-07)
 ------------------
 
