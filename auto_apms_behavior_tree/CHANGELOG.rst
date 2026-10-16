@@ -2,6 +2,15 @@
 Changelog for package auto_apms_behavior_tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Allow embedding node registration options inline with the behavior tree xml (`#20 <https://github.com/AutoAPMS/auto-apms/issues/20>`_)
+  * Add setter/getter for registration options specified inline the xml
+  * add evaluation of inline registration options and introduce lazy port info cache
+  * feature: add method to automatically set all inline registration options based on current node manifest of parent doc
+* fix: resolve rolling regressions caused by upstream api changes
+* Contributors: Robin Müller
+
 1.6.0 (2026-10-16)
 ------------------
 * add startExecution method to TreeExecutorBase that allows for providing a finished BT::Tree

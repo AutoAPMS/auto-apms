@@ -2,6 +2,9 @@
 Changelog for package auto_apms_ros2behavior
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 1.6.0 (2026-10-16)
 ------------------
 * feature: add new include tag for including autoapms tree resources
