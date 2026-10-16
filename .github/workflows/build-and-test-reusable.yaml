@@ -16,10 +16,35 @@ on:
         required: false
         type: boolean
         default: false
+      package_name:
+        description: 'Package(s) to build and test (whitespace separated). Builds and tests everything if empty'
+        required: false
+        type: string
+        default: ''
+      vcs_repo_file_url:
+        description: 'Repo file passed to vcs to import additional source dependencies into the workspace'
+        required: false
+        type: string
+        default: ''
+      skip_tests:
+        description: 'Only build the workspace (with BUILD_TESTING=OFF) and skip running the tests'
+        required: false
+        type: boolean
+        default: false
+      node_reference_manifests:
+        description: 'Arguments for create_node_reference_markdown following the output file (e.g. include_native my_pkg::my_manifest). If set, the behavior tree node reference is generated and uploaded as artifact bt-node-reference'
+        required: false
+        type: string
+        default: ''
+      node_reference_file:
+        description: 'Name of the generated behavior tree node reference file'
+        required: false
+        type: string
+        default: 'create_node_reference_markdown_output.md'
 
 jobs:
   build_and_test:
-    name: Build and Test (${{ inputs.ros_distribution }}${{ inputs.use_ros2_testing && ', testing' || '' }})
+    name: ${{ inputs.skip_tests && 'Build' || 'Build and Test' }} (${{ inputs.ros_distribution }}${{ inputs.use_ros2_testing && ', testing' || '' }})
     runs-on: ubuntu-latest
     container:
       image: ${{ inputs.docker_image }}
@@ -39,16 +64,32 @@ jobs:
         with:
           import-token: ${{ secrets.GITHUB_TOKEN }}
           target-ros2-distro: ${{ inputs.ros_distribution }}
+          package-name: ${{ inputs.package_name }}
+          vcs-repo-file-url: ${{ inputs.vcs_repo_file_url }}
+          skip-tests: ${{ inputs.skip_tests }}
           coverage-result: false
           colcon-defaults: |
             {
               "build": {
                 "cmake-args": [
                   "-DCMAKE_BUILD_TYPE=Release",
-                  "-DBUILD_TESTING=ON"
+                  "-DBUILD_TESTING=${{ inputs.skip_tests && 'OFF' || 'ON' }}"
                 ]
               }
             }
+      - name: Generate Behavior Tree Node Reference
+        if: inputs.node_reference_manifests != ''
+        shell: bash
+        run: |
+          source ${{ steps.ros-build.outputs.ros-workspace-directory-name }}/install/setup.bash
+          ros2 run auto_apms_behavior_tree_core create_node_reference_markdown ${{ inputs.node_reference_file }} ${{ inputs.node_reference_manifests }}
+      - name: Upload Behavior Tree Node Reference
+        if: inputs.node_reference_manifests != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: bt-node-reference
+          path: ${{ inputs.node_reference_file }}
+          if-no-files-found: error
       - name: Upload logs
         uses: actions/upload-artifact@v4
         with:

@@ -21,80 +21,10 @@ jobs:
       ros_distribution: rolling
       docker_image: ubuntu:resolute
       use_ros2_testing: true
+      node_reference_manifests: include_native auto_apms_behavior_tree::behavior_tree_nodes
 
   update_node_reference:
-    name: Update BT Node Reference Docs
-    runs-on: ubuntu-latest
     needs: build_and_test_testing # Only run this job after the build_and_test_testing job has completed successfully.
     if: github.event_name == 'push' # Don't run this job on pull requests, only on pushes.
-    container:
-      image: ubuntu:resolute
-      env:
-        PIP_BREAK_SYSTEM_PACKAGES: 1 # Allow pip to install system packages if needed.
-    steps:
-      - name: Setup ROS environment
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: rolling
-          use-ros2-testing: true
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build workspace
-        id: ros-build
-        uses: ros-tooling/action-ros-ci@v0.4
-        with:
-          import-token: ${{ secrets.GITHUB_TOKEN }}
-          target-ros2-distro: rolling
-          coverage-result: false
-          colcon-defaults: |
-            {
-              "build": {
-                "cmake-args": [
-                  "-DCMAKE_BUILD_TYPE=Release",
-                  "-DBUILD_TESTING=OFF"
-                ]
-              }
-            }
-
-      - name: Generate Behavior Tree Node Reference
-        shell: bash
-        run: |
-          source ${{ steps.ros-build.outputs.ros-workspace-directory-name }}/install/setup.bash
-          ros2 run auto_apms_behavior_tree_core create_node_reference_markdown create_node_reference_markdown_output.md include_native auto_apms_behavior_tree::behavior_tree_nodes
-
-      - name: Generate GitHub App Token
-        id: generate-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.UPDATE_BT_NODE_REF_APP_ID }}
-          private-key: ${{ secrets.UPDATE_BT_NODE_REF_APP_PRIVATE_KEY }}
-          owner: AutoAPMS
-          repositories: "auto-apms-guide"
-
-      - name: Checkout Documentation Repo
-        uses: actions/checkout@v4
-        with:
-          repository: AutoAPMS/auto-apms-guide
-          token: ${{ steps.generate-token.outputs.token }}  # Use GitHub App token
-          path: docs-repo
-          ref: master
-
-      - name: Copy Updated Docs
-        run: |
-          cp create_node_reference_markdown_output.md docs-repo/src/reference/create_node_reference_markdown_output.md
-
-      - name: Commit and Push Documentation
-        run: |
-          cd docs-repo
-          git config user.name "update-bt-node-reference[bot]"
-          git config user.email "update-bt-node-reference[bot]@users.noreply.github.com"
-          git add .
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "Update behavior tree node reference"
-            git push
-          fi
+    uses: ./.github/workflows/update-node-reference-reusable.yaml
+    secrets: inherit
