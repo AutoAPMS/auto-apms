@@ -162,9 +162,11 @@ macro(auto_apms_behavior_tree_register_nodes target)
     endif()
   else()
     # Apply metadata ID aliasing if a manifest alias is provided, otherwise use the target name as default id.
-    set(metadata_id "${target}")
+    # The variable is prefixed, as this macro runs in the scope of the caller, where a variable named metadata_id would
+    # be read by the unquoted conditions of other macros with a parameter of that name
+    set(_register_nodes__metadata_id "${target}")
     if(NOT "${_register_nodes__NODE_MANIFEST_ALIAS}" STREQUAL "")
-      set(metadata_id "${_register_nodes__NODE_MANIFEST_ALIAS}")
+      set(_register_nodes__metadata_id "${_register_nodes__NODE_MANIFEST_ALIAS}")
     endif()
 
     # Generate node metadata for the specified manifests and optionally generate a node model header.
@@ -172,7 +174,7 @@ macro(auto_apms_behavior_tree_register_nodes target)
     # under metadata_id, even when every NODE_MANIFEST entry is an already-existing resource identity.
     # register_nodes relies on this resource being registered (it ignores the resolved install paths).
     auto_apms_behavior_tree_generate_node_metadata_hybrid_manifest_args(
-      "${metadata_id}"
+      "${_register_nodes__metadata_id}"
       ${_register_nodes__NODE_MANIFEST}
       NODE_MODEL_HEADER_TARGET
       "${_register_nodes__NODE_MODEL_HEADER_TARGET}"

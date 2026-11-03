@@ -125,7 +125,9 @@ macro(auto_apms_behavior_tree_register_behavior build_request)
   endif()
   list(APPEND _all_behaviors "${_category}${_behavior_alias}")
 
-  set(_metadata_id "${_category}__${_behavior_alias}")
+  # The metadata ID names generated files and build targets, so the '::' of the aliases of trees (<file>::<TreeID>) must
+  # not be part of it
+  string(REGEX REPLACE "[^A-Za-z0-9_.+-]" "_" _metadata_id "${_category}__${_behavior_alias}")
 
   # Determine the build request
   if(EXISTS "${_behavior_file_abs_path__source}")

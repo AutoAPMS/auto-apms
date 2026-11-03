@@ -95,7 +95,9 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
     )
   endif()
 
-  if(metadata_id IN_LIST _AUTO_APMS_BEHAVIOR_TREE_CORE__METADATA_IDS)
+  # Quoted: in a macro, an unquoted metadata_id refers to a variable of that name in the scope of the caller, not to the
+  # parameter
+  if("${metadata_id}" IN_LIST _AUTO_APMS_BEHAVIOR_TREE_CORE__METADATA_IDS)
     message(
         FATAL_ERROR
         "auto_apms_behavior_tree_generate_node_metadata(): Metadata with ID '${metadata_id}' has already been generated before."
@@ -145,8 +147,9 @@ macro(auto_apms_behavior_tree_generate_node_metadata metadata_id)
   set(_generated_node_manifest_rel_dir__install "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_DIR_RELATIVE__METADATA}")
   set(_generated_node_model_rel_dir__install "${_AUTO_APMS_BEHAVIOR_TREE_CORE__RESOURCE_DIR_RELATIVE__METADATA}")
 
-  # Create a valid metadata_id for the custom target
-  string(REPLACE " " "_" _custom_target_suffix "${metadata_id}")
+  # Create a valid metadata_id for the custom target: metadata IDs of registered trees contain '::' (e.g.
+  # "tree__file::TreeID"), which is not allowed in target names
+  string(REGEX REPLACE "[^A-Za-z0-9_.+-]" "_" _custom_target_suffix "${metadata_id}")
   string(TOLOWER "${_custom_target_suffix}" _custom_target_suffix)
 
   # Create the complete manifest for model generation.
