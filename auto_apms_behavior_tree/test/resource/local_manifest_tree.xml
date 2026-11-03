@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Registered with a node manifest file of this package (test_node_manifest.yaml) next to a manifest identity, which
+     makes the build generate the node metadata of the tree (see CMakeLists.txt) -->
+<root BTCPP_format="4" main_tree_to_execute="LocalManifestTree">
+  <BehaviorTree ID="LocalManifestTree">
+    <Sequence>
+      <CustomLogger message="local manifest"/>
+      <Logger message="manifest identity"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

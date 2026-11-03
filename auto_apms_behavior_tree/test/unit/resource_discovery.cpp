@@ -187,3 +187,27 @@ TEST(TreeResourceDiscovery, FindByFileStemNonexistentThrows)
 {
   EXPECT_THROW(TreeResource::findByFileStem("no_such_file"), auto_apms_util::exceptions::ResourceError);
 }
+
+// =============================================================================
+// Trees registered with a node manifest file
+// =============================================================================
+
+// local_manifest_tree.xml is registered with the node manifest file test/resource/test_node_manifest.yaml next to the
+// identity auto_apms_behavior_tree::behavior_tree_nodes, which makes the build generate the tree's node metadata.
+
+TEST(TreeWithNodeManifestFile, IsRegistered)
+{
+  EXPECT_NO_THROW(TreeResource resource("auto_apms_behavior_tree::local_manifest_tree::LocalManifestTree"));
+}
+
+TEST(TreeWithNodeManifestFile, NodeManifestHasTheNodesOfTheFileAndOfTheIdentity)
+{
+  const BehaviorResource resource("auto_apms_behavior_tree::local_manifest_tree::LocalManifestTree");
+  const NodeManifest & manifest = resource.getNodeManifest();
+  // From the file, with its parent resolved
+  ASSERT_TRUE(manifest.contains("CustomLogger"));
+  EXPECT_EQ(manifest["CustomLogger"].class_name, "auto_apms_behavior_tree::Logger");
+  EXPECT_EQ(manifest["CustomLogger"].topic, "/custom/log");
+  // From the identity
+  EXPECT_TRUE(manifest.contains("Logger"));
+}

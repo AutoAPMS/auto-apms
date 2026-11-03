@@ -360,6 +360,16 @@ if(BUILD_TESTING)
     NODE_MANIFEST "test/resource/test_node_manifest.yaml"
   )
 
+  # Register a tree with a node manifest file (not a manifest identity) next to a manifest identity, so the node
+  # metadata of the tree is generated during the build. The alias of a tree contains '::' (<file_stem>::<tree_name>),
+  # which must not end up in the names of the generated files and targets.
+  auto_apms_behavior_tree_register_trees(
+    "test/resource/local_manifest_tree.xml"
+    NODE_MANIFEST
+    "test/resource/test_node_manifest.yaml"
+    "auto_apms_behavior_tree::behavior_tree_nodes"
+  )
+
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/build_handler.cpp"
     "test/unit/node_registration.cpp"
