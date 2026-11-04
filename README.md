@@ -198,3 +198,37 @@ doxygen doc/Doxyfile
 ## 🙏 Acknowledgements
 
 This repository builds on [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP) by Davide Faconti. Special thanks to him and the robotic community which made AutoAPMS possible in the first place! 🚀
+
+### Funding
+
+This project has received funding by the following research projects:
+
+---
+
+[emergenCITY](https://www.emergencity.de/) by [LOEWE initiative](https://wissenschaft.hessen.de/forschen/forschungsfoerderprogramm-loewe) in Hesse, Germany under [LOEWE/1/12/519/03/05.001(0016)/72]
+
+<a href="https://www.emergencity.de/">
+  <img align="center" src="./assets/emergenCITY_Logo_Horizontal_Color.svg" width="170" />
+</a>
+&nbsp;&nbsp;&nbsp;
+<a>
+  <img align="center" src="./assets/LOEWE.svg" width="100" />
+</a>
+
+---
+
+This work was funded by the [European Regional Development Fund (ERDF)](https://ec.europa.eu/regional_policy/funding/erdf_en) and the [Hessian Ministry of Digitalisation and Innovation (Distr@l)](https://digitales.hessen.de/), as part of the [Hessian Drone Competence Centre (HDKZ)](https://drohnenkompetenzzentrum.org/).
+
+<a href="https://drohnenkompetenzzentrum.org/">
+  <img align="center" src="./assets/hdkz-logo-colored-blue-rgb.svg" width="110" />
+</a>
+&nbsp;&nbsp;&nbsp;
+<a>
+  <img align="center" src="./assets/DE_Co-fundedbytheEU_RGB_POS.png" width="250" />
+</a>
+&nbsp;&nbsp;&nbsp;
+<a>
+  <img align="center" src="./assets/HESSEN_Ministerien_Digitales_RGB_blau.svg" width="160" />
+</a>
+
+---
