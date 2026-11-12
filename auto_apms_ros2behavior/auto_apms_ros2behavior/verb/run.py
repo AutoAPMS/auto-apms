@@ -114,6 +114,11 @@ class RunVerb(VerbExtension):
             type=str,
             help="ROS 2 node namespace for the executor",
         )
+        parser.add_argument(
+            "--node-name",
+            type=str,
+            help="Name of the executor node (default: run_behavior)",
+        )
 
     def main(self, *, args):
         """Main function for the run verb."""
@@ -158,4 +163,5 @@ class RunVerb(VerbExtension):
             blackboard_params=blackboard_params,
             logging_level=args.logging,
             namespace=args.namespace,
+            node_name=args.node_name,
         )

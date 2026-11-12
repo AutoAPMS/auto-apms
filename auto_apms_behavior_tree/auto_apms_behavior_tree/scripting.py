@@ -353,6 +353,7 @@ def sync_run_generic_behavior_locally(
     blackboard_params: dict = None,
     logging_level: LoggingSeverity = None,
     namespace: str | None = None,
+    node_name: str | None = None,
 ):
     """
     Execute a behavior locally using the run_behavior executable.
@@ -368,6 +369,8 @@ def sync_run_generic_behavior_locally(
         blackboard_params: Blackboard parameters to set on the executor
         logging_level: Logger level to set on the executor
         namespace: Optional ROS 2 node namespace to run the executor under
+        node_name: Optional name of the executor node (default: the name of the executable, run_behavior), e.g. to
+            tell several executors in one namespace apart
     """
     required_package = "auto_apms_behavior_tree"
     required_command = "run_behavior"
@@ -386,10 +389,15 @@ def sync_run_generic_behavior_locally(
 
     if namespace:
         add_ros_argument("remap", ("__ns", namespace if namespace.startswith("/") else f"/{namespace}"))
+    if node_name:
+        add_ros_argument("remap", ("__node", node_name))
 
     if logging_level:
+        # The logger of a node is named after its namespace (without the leading slash, separated by dots) and its name
+        logger_name = node_name or required_command
+        logger_namespace = (namespace or "").strip("/").replace("/", ".")
         add_ros_argument(
-            "log-level", (f"{namespace}.{required_command}" if namespace else required_command, logging_level.name)
+            "log-level", (f"{logger_namespace}.{logger_name}" if logger_namespace else logger_name, logging_level.name)
         )
 
     # Add static parameter for setting the build handler
