@@ -20,7 +20,7 @@ namespace auto_apms_behavior_tree::core
 RosControlNode::RosControlNode(const std::string & instance_name, const Config & config, Context context)
 : BT::ControlNode(instance_name, config), RosNodeBase(instance_name, context)
 {
-  // Support the node manifest 'port_alias' feature (see RosStatefulActionNode for details).
+  // Support the node manifest 'port_alias' feature (see RosActionNodeBase for details).
   applyPortAliasing(this);
 }
 
