@@ -31,8 +31,8 @@ namespace auto_apms_behavior_tree::core
  * @brief Common state and node-manifest support shared by the ROS-aware behavior tree node base classes.
  *
  * This is a plain (non-`BT::TreeNode`) mixin that holds the RosNodeContext and a per-instance logger. It exists so the
- * ROS-aware wrappers around the basic BehaviorTree.CPP node types (RosSyncActionNode, RosStatefulActionNode,
- * RosConditionNode, RosDecoratorNode, RosControlNode) share identical construction logic instead of duplicating it.
+ * ROS-aware wrappers around the basic BehaviorTree.CPP node types (RosActionNodeBase, RosConditionNode,
+ * RosDecoratorNode, RosControlNode) share identical construction logic instead of duplicating it.
  *
  * Applying the node-manifest port aliasing is triggered by the derived node itself via applyPortAliasing(); the
  * wrappers call it from their constructor once the node is fully constructed.

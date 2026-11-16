@@ -28,7 +28,7 @@ namespace auto_apms_behavior_tree::core
  *
  * This is the most generic of the ROS-aware action bases: it adds the RosNodeContext, a per-instance logger and
  * node-manifest support to the plain `BT::ActionNodeBase` without imposing any particular execution structure. Unlike
- * RosStatefulActionNode (which supplies the `onStart()`/`onRunning()`/`onHalted()` state machine), the derived node
+ * `BT::StatefulActionNode` (which supplies the `onStart()`/`onRunning()`/`onHalted()` state machine), the derived node
  * implements `tick()` and `halt()` directly and is therefore free to run its own state machine - useful when the
  * built-in stateful flow doesn't fit, e.g. a node that publishes a command and then waits for an acknowledgement while
  * managing the transition between those phases itself.
