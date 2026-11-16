@@ -386,6 +386,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(${PROJECT_NAME}_integration_tests
     "test/integration/tree_execution.cpp"
+    "test/integration/parameter_node_target.cpp"
   )
   target_link_libraries(${PROJECT_NAME}_integration_tests ${PROJECT_NAME})
 endif()

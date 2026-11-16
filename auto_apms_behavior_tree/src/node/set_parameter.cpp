@@ -35,12 +35,29 @@ public:
   SetParameterTemplate(const std::string & instance_name, const Config & config, const Context & context)
   : RosServiceNode(instance_name, config, context)
   {
-    // If input port is empty or not provided, refer to this ROS 2 node as the target
+    // A node manifest may name the service instead, with (input:port) substitutions (registration option 'topic', e.g.
+    // "(input:robot)/my_node/set_parameters" to target a node of the robot named by the input port 'robot'). Then the
+    // base class has created the client, or creates it when the node is ticked first if the name refers to a
+    // blackboard entry that is not set yet.
+    if (context_.getRegistrationOptions().topic != core::NodeRegistrationOptions().topic) return;
+
+    // If input port is empty or not provided, refer to this ROS 2 node as the target. Otherwise, the port's value is
+    // resolved like the (input:port) pattern of a node manifest's topic: a static name, or a blackboard entry that is
+    // set before the tree is created (e.g. by the entry point), as the client is created now
     std::string node_name = context_.getFullyQualifiedRosNodeName();
     if (
       config.input_ports.find(INPUT_KEY_NODE_NAME) != config.input_ports.end() &&
       !config.input_ports.at(INPUT_KEY_NODE_NAME).empty()) {
-      node_name = config.input_ports.at(INPUT_KEY_NODE_NAME);
+      const BT::Expected<std::string> expected_node_name = getInput<std::string>(INPUT_KEY_NODE_NAME);
+      if (!expected_node_name || expected_node_name.value().empty()) {
+        throw exceptions::RosNodeError(
+          context_.getFullyQualifiedTreeNodeName(this) +
+          " - Cannot determine the targeted ROS 2 node from input port '" + INPUT_KEY_NODE_NAME + "' (" +
+          config.input_ports.at(INPUT_KEY_NODE_NAME) +
+          "): " + (expected_node_name ? std::string("value is empty") : expected_node_name.error()) +
+          ". A blackboard entry must be set before the tree is created.");
+      }
+      node_name = expected_node_name.value();
     }
     createClient(node_name + "/set_parameters");
   }
@@ -55,7 +72,9 @@ public:
     using AnyType = typename std::conditional_t<std::is_same_v<BT::Any, T>, BT::AnyTypeAllowed, T>;
     return {
       BT::InputPort<std::string>(
-        INPUT_KEY_NODE_NAME, "Name of the targeted ROS 2 node. Leave empty to target this executor's node."),
+        INPUT_KEY_NODE_NAME,
+        "Name of the targeted ROS 2 node (a blackboard entry must be set before the tree is created). Leave empty to "
+        "target this executor's node."),
       BT::InputPort<AnyType>(INPUT_KEY_PARAM_VALUE, "Value of the parameter to be set."),
       BT::InputPort<std::string>(INPUT_KEY_PARAM_NAME, "Name of the parameter to be set."),
     };
