@@ -115,8 +115,10 @@ struct NodeRegistrationOptions
   std::chrono::duration<double> wait_timeout = std::chrono::duration<double>(5);
   /// Period [s] (measured from sending a request) after the node aborts waiting for a server response.
   std::chrono::duration<double> request_timeout = std::chrono::duration<double>(5);
-  /// Flag whether to tolerate if the action/service is unreachable when trying to create the client. If set to
-  /// `true`, a warning is logged. Otherwise, an exception is raised.
+  /// Flag whether to tolerate if the action/service is unreachable. If set to `true`, a warning is logged when creating
+  /// the client, and a node whose server is unreachable or does not answer in time when ticked returns
+  /// `BT::NodeStatus::FAILURE` (with a throttled warning) instead of raising an exception that interrupts the tree.
+  /// Otherwise, an exception is raised in both cases.
   bool allow_unreachable = false;
   /// Minimum ROS 2 logging severity level for this particular node. Empty means to inherit the parent logging severity.
   std::string logger_level = "";
