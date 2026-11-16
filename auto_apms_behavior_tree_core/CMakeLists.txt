@@ -135,6 +135,7 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_unit_tests
     "test/unit/node_manifest.cpp"
     "test/unit/ros_subscriber_node.cpp"
+    "test/unit/ros_service_node.cpp"
     "test/unit/ros_node_port_alias.cpp"
     "test/unit/tree_document_node_element.cpp"
     "test/unit/tree_document_node_model.cpp"

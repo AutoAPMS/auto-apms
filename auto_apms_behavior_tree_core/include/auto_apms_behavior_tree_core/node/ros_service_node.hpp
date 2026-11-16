@@ -80,8 +80,9 @@ inline const char * toStr(const ServiceNodeErrorCode & err)
  * - request_timeout: Period [s] (measured since sending a goal request) after the node aborts waiting for a server
  * response.
  *
- * - allow_unreachable: Flag whether to tolerate if the service is unreachable when trying to create the client.
- * If set to `true`, a warning is logged. Otherwise, an exception is raised.
+ * - allow_unreachable: Flag whether to tolerate if the service is unreachable. If set to `true`, a warning is logged
+ * when creating the client, and the default onFailure() returns `BT::NodeStatus::FAILURE` for SERVICE_UNREACHABLE and
+ * SERVICE_TIMEOUT. Otherwise, an exception is raised in both cases.
  *
  * - logger_level: Minimum severity level enabled for logging using the ROS 2 Logger API.
  *
@@ -169,7 +170,9 @@ public:
    *
    * Based on the error code, the node may return `BT::NodeStatus::SUCCESS` or `BT::NodeStatus::FAILURE`.
    *
-   * By default, this callback throws `auto_apms_behavior_tree::exceptions::RosNodeError` and interrupts the tree.
+   * By default, this callback throws `auto_apms_behavior_tree::exceptions::RosNodeError` and interrupts the tree. If
+   * the registration option `allow_unreachable` is set, it returns `BT::NodeStatus::FAILURE` for SERVICE_UNREACHABLE
+   * and SERVICE_TIMEOUT instead, so that a tree can react to a server that is temporarily gone.
    * @param error Code for the error that has occurred.
    * @return Final return status of the node.
    */
@@ -357,6 +360,14 @@ inline BT::NodeStatus RosServiceNode<ServiceT>::onResponseReceived(const typenam
 template <class ServiceT>
 inline BT::NodeStatus RosServiceNode<ServiceT>::onFailure(ServiceNodeErrorCode error)
 {
+  if (
+    context_.getRegistrationOptions().allow_unreachable && (error == SERVICE_UNREACHABLE || error == SERVICE_TIMEOUT)) {
+    RCLCPP_WARN_THROTTLE(
+      logger_, *context_.getRosNode()->get_clock(), 5000,
+      "%s - %s (service '%s'), failing as allow_unreachable is true.",
+      context_.getFullyQualifiedTreeNodeName(this).c_str(), toStr(error), getServiceName().c_str());
+    return BT::NodeStatus::FAILURE;
+  }
   const std::string msg = context_.getFullyQualifiedTreeNodeName(this) + " - Unexpected error " +
                           std::to_string(error) + ": " + toStr(error) + ".";
   RCLCPP_ERROR_STREAM(logger_, msg);
