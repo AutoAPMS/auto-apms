@@ -144,7 +144,8 @@ class SendVerb(VerbExtension):
             entry_point = args.entry_point
         node_manifest = args.behavior.node_manifest if args.behavior else None
         if args.node_manifest:
-            node_manifest = args.node_manifest
+            # The argument is a node manifest resource, the behavior functions expect its manifest
+            node_manifest = args.node_manifest.node_manifest
 
         # Collect static parameters if specified
         static_params = {}
